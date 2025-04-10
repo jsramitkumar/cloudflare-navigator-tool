@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { 
   Home, 
   Globe, 
-  Tunnel, 
+  Network, 
   Settings, 
   LogOut,
   Shield
@@ -19,7 +19,7 @@ const Sidebar: React.FC = () => {
   const navItems = [
     { icon: Home, label: 'Dashboard', path: '/', disabled: false },
     { icon: Globe, label: 'DNS Records', path: '/dns', disabled: !hasCredentials },
-    { icon: Tunnel, label: 'Tunnels', path: '/tunnels', disabled: !hasCredentials },
+    { icon: Network, label: 'Tunnels', path: '/tunnels', disabled: !hasCredentials },
     { icon: Settings, label: 'Settings', path: '/settings', disabled: false },
   ];
   

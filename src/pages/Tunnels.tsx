@@ -110,7 +110,7 @@ const Tunnels: React.FC = () => {
   
   const onSubmit = async (data: TunnelFormValues) => {
     try {
-      await tunnelsApi.createTunnel(data);
+      await tunnelsApi.createTunnel({ name: data.name });
       await fetchTunnels();
       setIsAddDialogOpen(false);
       form.reset();

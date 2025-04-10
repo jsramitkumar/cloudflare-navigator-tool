@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Globe, Tunnel, Settings, ArrowRight } from 'lucide-react';
+import { Globe, Network, Settings, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getCredentials } from '@/services/cloudflareApi';
@@ -26,7 +26,7 @@ const Dashboard: React.FC = () => {
     {
       title: "Tunnels",
       description: "Manage Cloudflare Tunnels to expose local services",
-      icon: Tunnel,
+      icon: Network,
       path: "/tunnels",
       requiresCredentials: true,
     },
