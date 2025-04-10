@@ -145,7 +145,15 @@ const DnsRecords: React.FC = () => {
   
   const onSubmit = async (data: RecordFormValues) => {
     try {
-      await dnsRecordsApi.createRecord(data);
+      // Fixed: Explicitly cast the form data to the required type structure
+      await dnsRecordsApi.createRecord({
+        type: data.type,
+        name: data.name,
+        content: data.content,
+        ttl: data.ttl,
+        proxied: data.proxied
+      });
+      
       await fetchRecords();
       setIsAddDialogOpen(false);
       form.reset();
@@ -179,7 +187,15 @@ const DnsRecords: React.FC = () => {
     if (!editingRecord) return;
     
     try {
-      await dnsRecordsApi.updateRecord(editingRecord.id, data);
+      // Fixed: Explicitly cast the form data to the required type structure
+      await dnsRecordsApi.updateRecord(editingRecord.id, {
+        type: data.type,
+        name: data.name,
+        content: data.content,
+        ttl: data.ttl,
+        proxied: data.proxied
+      });
+      
       await fetchRecords();
       setIsEditDialogOpen(false);
       toast({
