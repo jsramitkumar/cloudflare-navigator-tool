@@ -18,6 +18,23 @@ export interface CloudflareTunnel {
   created_at: string;
 }
 
+export interface TunnelIngress {
+  hostname: string;
+  service: string;
+  path?: string;
+  originRequest?: {
+    noTLSVerify?: boolean;
+    originServerName?: string;
+  };
+}
+
+export interface TunnelConfig {
+  tunnel_id: string;
+  config: {
+    ingress: TunnelIngress[];
+  };
+}
+
 // Interface for API credentials
 export interface CloudflareCredentials {
   apiKey: string;
@@ -149,6 +166,22 @@ export const tunnelsApi = {
   
   deleteTunnel: async (tunnelId: string): Promise<{ id: string }> => {
     const response = await makeRequest(`/tunnels/${tunnelId}`, 'DELETE');
+    return response.result;
+  },
+  
+  // New methods for tunnel configurations
+  getTunnelConfig: async (tunnelId: string): Promise<TunnelConfig> => {
+    const response = await makeRequest(`/tunnels/${tunnelId}/configurations`);
+    return response.result;
+  },
+  
+  updateTunnelConfig: async (tunnelId: string, config: any): Promise<TunnelConfig> => {
+    const response = await makeRequest(`/tunnels/${tunnelId}/configurations`, 'PUT', config);
+    return response.result;
+  },
+  
+  patchTunnelConfig: async (tunnelId: string, config: any): Promise<TunnelConfig> => {
+    const response = await makeRequest(`/tunnels/${tunnelId}/configurations`, 'PATCH', config);
     return response.result;
   }
 };

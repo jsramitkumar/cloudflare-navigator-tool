@@ -145,6 +145,34 @@ app.delete('/api/cloudflare/tunnels/:id', async (req, res) => {
   }
 });
 
+// Tunnel Configurations endpoints
+app.get('/api/cloudflare/tunnels/:id/configurations', async (req, res) => {
+  try {
+    const data = await callCloudflareApi(req, `/tunnels/${req.params.id}/configurations`, 'GET');
+    res.json(data);
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+});
+
+app.put('/api/cloudflare/tunnels/:id/configurations', async (req, res) => {
+  try {
+    const data = await callCloudflareApi(req, `/tunnels/${req.params.id}/configurations`, 'PUT', req.body);
+    res.json(data);
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+});
+
+app.patch('/api/cloudflare/tunnels/:id/configurations', async (req, res) => {
+  try {
+    const data = await callCloudflareApi(req, `/tunnels/${req.params.id}/configurations`, 'PATCH', req.body);
+    res.json(data);
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

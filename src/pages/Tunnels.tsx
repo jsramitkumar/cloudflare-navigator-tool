@@ -12,6 +12,7 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  Network,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +55,7 @@ import {
 import { toast } from '@/components/ui/use-toast';
 import { tunnelsApi, CloudflareTunnel, getCredentials } from '@/services/cloudflareApi';
 import { Badge } from '@/components/ui/badge';
+import TunnelDetails from '@/components/tunnels/TunnelDetails';
 
 const tunnelFormSchema = z.object({
   name: z.string().min(1, 'Tunnel name is required'),
@@ -67,6 +69,7 @@ const Tunnels: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedTunnelId, setSelectedTunnelId] = useState<string | null>(null);
   
   const form = useForm<TunnelFormValues>({
     resolver: zodResolver(tunnelFormSchema),
@@ -176,6 +179,16 @@ const Tunnels: React.FC = () => {
       minute: '2-digit',
     }).format(date);
   };
+
+  // If a tunnel is selected, show its details
+  if (selectedTunnelId) {
+    return (
+      <TunnelDetails 
+        tunnelId={selectedTunnelId}
+        onBack={() => setSelectedTunnelId(null)}
+      />
+    );
+  }
   
   return (
     <div className="container">
@@ -267,6 +280,13 @@ const Tunnels: React.FC = () => {
                   <TableCell>{getStatusBadge(tunnel.status)}</TableCell>
                   <TableCell>{formatDate(tunnel.created_at)}</TableCell>
                   <TableCell className="text-right">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => setSelectedTunnelId(tunnel.id)}
+                    >
+                      <Network className="h-4 w-4" />
+                    </Button>
                     <Button 
                       variant="ghost" 
                       size="icon"
