@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -34,12 +33,16 @@ const callCloudflareApi = async (req, endpoint, method, data = null) => {
     const path = endpoint.replace('/dns', '');
     fullEndpoint = `/zones/${zoneId}/dns_records${path}`;
   } else if (endpoint.startsWith('/tunnels')) {
-    // Check if this is a configuration endpoint
     if (endpoint.includes('/configurations')) {
+      // Tunnel configurations need to use cfd_tunnel
+      const tunnelId = endpoint.split('/')[2];
+      fullEndpoint = `/accounts/${accountId}/cfd_tunnel/${tunnelId}/configurations`;
+    } else if (endpoint.includes('/delete_config')) {
+      // Special case for deleting configurations
       const tunnelId = endpoint.split('/')[2];
       fullEndpoint = `/accounts/${accountId}/cfd_tunnel/${tunnelId}/configurations`;
     } else {
-      // Regular tunnel endpoints use accounts
+      // Regular tunnel endpoints
       const path = endpoint.replace('/tunnels', '');
       fullEndpoint = `/accounts/${accountId}/tunnels${path}`;
     }
@@ -180,6 +183,16 @@ app.put('/api/cloudflare/tunnels/:id/configurations', async (req, res) => {
 app.patch('/api/cloudflare/tunnels/:id/configurations', async (req, res) => {
   try {
     const data = await callCloudflareApi(req, `/tunnels/${req.params.id}/configurations`, 'PATCH', req.body);
+    res.json(data);
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.message });
+  }
+});
+
+// Add specific endpoint for deleting tunnel configurations
+app.delete('/api/cloudflare/tunnels/:id/configurations', async (req, res) => {
+  try {
+    const data = await callCloudflareApi(req, `/tunnels/${req.params.id}/delete_config`, 'DELETE', req.body);
     res.json(data);
   } catch (error) {
     res.status(error.status || 500).json({ success: false, message: error.message });

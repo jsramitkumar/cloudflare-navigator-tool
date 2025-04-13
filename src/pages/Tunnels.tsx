@@ -98,6 +98,7 @@ const Tunnels: React.FC = () => {
     setIsLoading(true);
     try {
       const data = await tunnelsApi.listTunnels();
+      // Filter out deleted tunnels (tunnelsApi.listTunnels already does this now)
       setTunnels(data);
     } catch (error) {
       console.error('Failed to fetch tunnels:', error);

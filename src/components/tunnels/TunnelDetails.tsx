@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -61,6 +62,18 @@ const TunnelDetails: React.FC<TunnelDetailsProps> = ({ tunnelId, onBack }) => {
       setIsLoading(true);
       try {
         const tunnelData = await tunnelsApi.getTunnel(tunnelId);
+        
+        // Check if tunnel is deleted
+        if (tunnelData.deleted_at) {
+          toast({
+            title: "Tunnel deleted",
+            description: "This tunnel has been deleted and is no longer available.",
+            variant: "destructive",
+          });
+          onBack(); // Go back to tunnels list
+          return;
+        }
+        
         setTunnel(tunnelData);
         
         try {
@@ -233,7 +246,7 @@ const TunnelDetails: React.FC<TunnelDetailsProps> = ({ tunnelId, onBack }) => {
         }
       };
       
-      // Update the tunnel configuration
+      // Update the tunnel configuration using the correct cfd_tunnel endpoint
       await tunnelsApi.updateTunnelConfig(tunnelId, updatedConfig);
       setConfig(updatedConfig);
       toast({
@@ -245,6 +258,25 @@ const TunnelDetails: React.FC<TunnelDetailsProps> = ({ tunnelId, onBack }) => {
       toast({
         title: "Failed to delete hostname",
         description: "There was an error deleting the public hostname.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // New function to delete entire tunnel configuration
+  const handleDeleteTunnelConfig = async () => {
+    try {
+      await tunnelsApi.deleteTunnelConfig(tunnelId);
+      toast({
+        title: "Configuration deleted",
+        description: "The tunnel configuration has been deleted successfully.",
+      });
+      onBack(); // Return to tunnels list
+    } catch (error) {
+      console.error('Failed to delete tunnel configuration:', error);
+      toast({
+        title: "Failed to delete configuration",
+        description: "There was an error deleting the tunnel configuration.",
         variant: "destructive",
       });
     }

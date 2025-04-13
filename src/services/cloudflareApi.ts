@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/use-toast";
 
 // Define types for Cloudflare DNS records
@@ -16,6 +15,7 @@ export interface CloudflareTunnel {
   name: string;
   status: string;
   created_at: string;
+  deleted_at?: string; // Added deleted_at field
 }
 
 export interface TunnelIngress {
@@ -151,7 +151,8 @@ export const dnsRecordsApi = {
 export const tunnelsApi = {
   listTunnels: async (): Promise<CloudflareTunnel[]> => {
     const response = await makeRequest('/tunnels');
-    return response.result;
+    // Filter out deleted tunnels
+    return response.result.filter((tunnel: CloudflareTunnel) => !tunnel.deleted_at);
   },
   
   getTunnel: async (tunnelId: string): Promise<CloudflareTunnel> => {
@@ -169,7 +170,7 @@ export const tunnelsApi = {
     return response.result;
   },
   
-  // New methods for tunnel configurations
+  // Tunnel configurations
   getTunnelConfig: async (tunnelId: string): Promise<TunnelConfig> => {
     const response = await makeRequest(`/tunnels/${tunnelId}/configurations`);
     return response.result;
@@ -182,6 +183,11 @@ export const tunnelsApi = {
   
   patchTunnelConfig: async (tunnelId: string, config: any): Promise<TunnelConfig> => {
     const response = await makeRequest(`/tunnels/${tunnelId}/configurations`, 'PATCH', config);
+    return response.result;
+  },
+  
+  deleteTunnelConfig: async (tunnelId: string): Promise<any> => {
+    const response = await makeRequest(`/tunnels/${tunnelId}/configurations`, 'DELETE');
     return response.result;
   }
 };
