@@ -1,3 +1,4 @@
+
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -27,18 +28,29 @@ const callCloudflareApi = async (req, endpoint, method, data = null) => {
   
   // Determine the full endpoint based on the resource type
   let fullEndpoint = '';
+  
   if (endpoint.startsWith('/dns')) {
     // DNS endpoints use zones
-    fullEndpoint = `/zones/${zoneId}/dns_records${endpoint.replace('/dns', '')}`;
+    const path = endpoint.replace('/dns', '');
+    fullEndpoint = `/zones/${zoneId}/dns_records${path}`;
   } else if (endpoint.startsWith('/tunnels')) {
-    // Tunnel endpoints use accounts
-    fullEndpoint = `/accounts/${accountId}/tunnels${endpoint.replace('/tunnels', '')}`;
+    // Check if this is a configuration endpoint
+    if (endpoint.includes('/configurations')) {
+      const tunnelId = endpoint.split('/')[2];
+      fullEndpoint = `/accounts/${accountId}/cfd_tunnel/${tunnelId}/configurations`;
+    } else {
+      // Regular tunnel endpoints use accounts
+      const path = endpoint.replace('/tunnels', '');
+      fullEndpoint = `/accounts/${accountId}/tunnels${path}`;
+    }
   } else {
     fullEndpoint = endpoint;
   }
   
+  console.log(`Making ${method} request to: ${baseUrl}${fullEndpoint}`);
+  
   try {
-    // Updated to use Global API Key authentication
+    // Use Global API Key authentication
     const headers = {
       'X-Auth-Key': apiKey,
       'X-Auth-Email': email,
@@ -57,7 +69,8 @@ const callCloudflareApi = async (req, endpoint, method, data = null) => {
     console.error('Cloudflare API error:', error.response?.data || error.message);
     throw {
       status: error.response?.status || 500,
-      message: error.response?.data?.errors?.[0]?.message || 'An error occurred'
+      message: error.response?.data?.errors?.[0]?.message || 'An error occurred',
+      details: error.response?.data
     };
   }
 };
