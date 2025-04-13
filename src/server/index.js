@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -39,15 +38,12 @@ const callCloudflareApi = async (req, endpoint, method, data = null) => {
   }
   
   try {
+    // Updated to use Global API Key authentication
     const headers = {
-      'Authorization': `Bearer ${apiKey}`,
+      'X-Auth-Key': apiKey,
+      'X-Auth-Email': email,
       'Content-Type': 'application/json'
     };
-    
-    // If email is provided, add the email header (for certain Cloudflare API endpoints)
-    if (email) {
-      headers['X-Auth-Email'] = email;
-    }
     
     const response = await axios({
       method,
