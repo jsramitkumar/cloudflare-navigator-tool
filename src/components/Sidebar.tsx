@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { 
@@ -8,13 +8,25 @@ import {
   Network, 
   Settings, 
   LogOut,
-  Shield
+  Shield,
+  Users
 } from 'lucide-react';
-import { getCredentials } from '@/services/cloudflareApi';
+import { 
+  getActiveAccount, 
+  CloudflareCredentials 
+} from '@/services/cloudflareApi';
 
 const Sidebar: React.FC = () => {
   const location = useLocation();
-  const hasCredentials = !!getCredentials();
+  const [activeAccount, setActiveAccount] = useState<CloudflareCredentials | null>(null);
+  
+  useEffect(() => {
+    // Update active account when location changes
+    const account = getActiveAccount();
+    setActiveAccount(account);
+  }, [location.pathname]);
+  
+  const hasCredentials = !!activeAccount;
   
   const navItems = [
     { icon: Home, label: 'Dashboard', path: '/', disabled: false },
@@ -55,20 +67,39 @@ const Sidebar: React.FC = () => {
       </nav>
       
       <div className="p-4 border-t border-border">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            {hasCredentials ? 'Connected' : 'Not connected'}
-          </span>
-          {hasCredentials && (
+        {activeAccount ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium text-sm truncate" title={activeAccount.name}>
+                  {activeAccount.name}
+                </span>
+              </div>
+              <Link 
+                to="/settings" 
+                className="text-xs text-primary hover:underline"
+              >
+                Switch
+              </Link>
+            </div>
+            <div className="text-xs text-muted-foreground truncate" title={activeAccount.accountId}>
+              Account: {activeAccount.accountId.substring(0, 8)}...
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">
+              No account connected
+            </span>
             <Link 
               to="/settings" 
-              className="flex items-center text-sm text-destructive hover:underline"
+              className="text-sm text-primary hover:underline"
             >
-              <LogOut className="h-4 w-4 mr-1" />
-              Disconnect
+              Connect
             </Link>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

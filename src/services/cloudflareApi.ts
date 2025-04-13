@@ -1,3 +1,4 @@
+
 import { toast } from "@/components/ui/use-toast";
 
 // Define types for Cloudflare DNS records
@@ -15,7 +16,7 @@ export interface CloudflareTunnel {
   name: string;
   status: string;
   created_at: string;
-  deleted_at?: string; // Added deleted_at field
+  deleted_at?: string;
 }
 
 export interface TunnelIngress {
@@ -37,45 +38,139 @@ export interface TunnelConfig {
 
 // Interface for API credentials
 export interface CloudflareCredentials {
+  id: string;
+  name: string;
   apiKey: string;
   email?: string;
   accountId: string;
   zoneId: string;
 }
 
-// Storage key for credentials
+// Storage keys for credentials
 const CREDENTIALS_STORAGE_KEY = 'cloudflare_credentials';
+const ACTIVE_ACCOUNT_KEY = 'cloudflare_active_account';
 
 // Helper function to save credentials to localStorage
-export const saveCredentials = (credentials: CloudflareCredentials): void => {
-  localStorage.setItem(CREDENTIALS_STORAGE_KEY, JSON.stringify(credentials));
+export const saveCredentials = (credentials: Omit<CloudflareCredentials, 'id'>): CloudflareCredentials => {
+  const accounts = getAccountsList() || [];
+  
+  // Generate a unique ID if this is a new account
+  const newAccount = {
+    ...credentials,
+    id: crypto.randomUUID()
+  };
+  
+  // Add the new account
+  accounts.push(newAccount);
+  
+  // Save all accounts
+  localStorage.setItem(CREDENTIALS_STORAGE_KEY, JSON.stringify(accounts));
+  
+  // Set as active account if it's the first one
+  if (accounts.length === 1) {
+    setActiveAccount(newAccount.id);
+  }
+  
   toast({
-    title: "Credentials saved",
-    description: "Your Cloudflare credentials have been saved successfully."
+    title: "Account added",
+    description: `Cloudflare account "${credentials.name}" has been saved.`
+  });
+  
+  return newAccount;
+};
+
+// Helper function to update an existing account
+export const updateCredentials = (id: string, credentials: Partial<CloudflareCredentials>): void => {
+  const accounts = getAccountsList() || [];
+  const updatedAccounts = accounts.map(account => 
+    account.id === id ? { ...account, ...credentials } : account
+  );
+  
+  localStorage.setItem(CREDENTIALS_STORAGE_KEY, JSON.stringify(updatedAccounts));
+  
+  toast({
+    title: "Account updated",
+    description: `Cloudflare account "${credentials.name || 'Unknown'}" has been updated.`
   });
 };
 
-// Helper function to retrieve credentials from localStorage
-export const getCredentials = (): CloudflareCredentials | null => {
-  const credentialsString = localStorage.getItem(CREDENTIALS_STORAGE_KEY);
-  if (!credentialsString) {
+// Helper function to retrieve all accounts from localStorage
+export const getAccountsList = (): CloudflareCredentials[] | null => {
+  const accountsString = localStorage.getItem(CREDENTIALS_STORAGE_KEY);
+  if (!accountsString) {
     return null;
   }
   
   try {
-    return JSON.parse(credentialsString) as CloudflareCredentials;
+    return JSON.parse(accountsString) as CloudflareCredentials[];
   } catch (error) {
-    console.error('Failed to parse credentials:', error);
+    console.error('Failed to parse accounts:', error);
     return null;
   }
 };
 
-// Helper function to clear credentials from localStorage
+// Set the active account
+export const setActiveAccount = (id: string): void => {
+  localStorage.setItem(ACTIVE_ACCOUNT_KEY, id);
+};
+
+// Get the ID of the active account
+export const getActiveAccountId = (): string | null => {
+  return localStorage.getItem(ACTIVE_ACCOUNT_KEY);
+};
+
+// Helper function to retrieve the active account from localStorage
+export const getActiveAccount = (): CloudflareCredentials | null => {
+  const accounts = getAccountsList();
+  if (!accounts) return null;
+  
+  const activeId = getActiveAccountId();
+  if (!activeId) {
+    // If no active account is set but accounts exist, return the first one
+    if (accounts.length > 0) {
+      setActiveAccount(accounts[0].id);
+      return accounts[0];
+    }
+    return null;
+  }
+  
+  return accounts.find(account => account.id === activeId) || null;
+};
+
+// Get the credentials (backwards compatibility)
+export const getCredentials = getActiveAccount;
+
+// Helper function to delete an account
+export const deleteAccount = (id: string): void => {
+  const accounts = getAccountsList() || [];
+  const updatedAccounts = accounts.filter(account => account.id !== id);
+  
+  localStorage.setItem(CREDENTIALS_STORAGE_KEY, JSON.stringify(updatedAccounts));
+  
+  // If we deleted the active account, set a new active account
+  const activeId = getActiveAccountId();
+  if (activeId === id) {
+    if (updatedAccounts.length > 0) {
+      setActiveAccount(updatedAccounts[0].id);
+    } else {
+      localStorage.removeItem(ACTIVE_ACCOUNT_KEY);
+    }
+  }
+  
+  toast({
+    title: "Account removed",
+    description: "Cloudflare account has been removed."
+  });
+};
+
+// Helper function to clear all credentials from localStorage
 export const clearCredentials = (): void => {
   localStorage.removeItem(CREDENTIALS_STORAGE_KEY);
+  localStorage.removeItem(ACTIVE_ACCOUNT_KEY);
+  
   toast({
-    title: "Credentials cleared",
-    description: "Your Cloudflare credentials have been removed."
+    title: "All accounts cleared",
+    description: "All Cloudflare accounts have been removed."
   });
 };
 
@@ -85,7 +180,7 @@ const makeRequest = async (
   method: string = 'GET',
   body?: any
 ): Promise<any> => {
-  const credentials = getCredentials();
+  const credentials = getActiveAccount();
   
   if (!credentials) {
     throw new Error('No Cloudflare credentials found. Please set your API credentials first.');
@@ -193,15 +288,38 @@ export const tunnelsApi = {
 };
 
 // Test if credentials are valid
-export const testCredentials = async (credentials: CloudflareCredentials): Promise<boolean> => {
+export const testCredentials = async (credentials: Omit<CloudflareCredentials, 'id'>): Promise<boolean> => {
   try {
-    // Save credentials temporarily
-    saveCredentials(credentials);
+    // Create a temporary account without saving it
+    const tempAccount: CloudflareCredentials = {
+      ...credentials,
+      id: 'temp-test-account'
+    };
+    
+    // Temporarily set it as active account
+    const currentActiveId = getActiveAccountId();
+    localStorage.setItem(CREDENTIALS_STORAGE_KEY, JSON.stringify([tempAccount]));
+    setActiveAccount(tempAccount.id);
+    
     // Try to list DNS records as a test
     await dnsRecordsApi.listRecords();
+    
+    // Restore original active account and remove temp account
+    localStorage.removeItem(CREDENTIALS_STORAGE_KEY);
+    if (currentActiveId) {
+      setActiveAccount(currentActiveId);
+    } else {
+      localStorage.removeItem(ACTIVE_ACCOUNT_KEY);
+    }
+    
     return true;
   } catch (error) {
-    clearCredentials();
+    // Restore original active account and cleanup
+    localStorage.removeItem(CREDENTIALS_STORAGE_KEY);
+    const currentActiveId = getActiveAccountId();
+    if (currentActiveId === 'temp-test-account') {
+      localStorage.removeItem(ACTIVE_ACCOUNT_KEY);
+    }
     throw error;
   }
 };

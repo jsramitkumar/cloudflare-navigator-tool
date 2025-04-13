@@ -25,27 +25,38 @@ import {
 import { toast } from '@/components/ui/use-toast';
 import { 
   saveCredentials, 
-  getCredentials, 
-  clearCredentials, 
+  updateCredentials,
+  getAccountsList,
+  getActiveAccount,
+  deleteAccount,
+  setActiveAccount,
+  clearCredentials,
   testCredentials,
   CloudflareCredentials
 } from '@/services/cloudflareApi';
+import AccountSelector from '@/components/AccountSelector';
 
 const formSchema = z.object({
+  name: z.string().min(1, 'Account name is required'),
   apiKey: z.string().min(1, 'API key is required'),
   email: z.string().email('Invalid email').optional().or(z.literal('')),
   accountId: z.string().min(1, 'Account ID is required'),
   zoneId: z.string().min(1, 'Zone ID is required'),
 });
 
+type FormValues = z.infer<typeof formSchema>;
+
 const Settings: React.FC = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [hasCredentials, setHasCredentials] = useState(false);
+  const [accounts, setAccounts] = useState<CloudflareCredentials[]>([]);
+  const [editMode, setEditMode] = useState(false);
+  const [currentAccountId, setCurrentAccountId] = useState<string | null>(null);
   
-  const form = useForm<CloudflareCredentials>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: '',
       apiKey: '',
       email: '',
       accountId: '',
@@ -53,24 +64,82 @@ const Settings: React.FC = () => {
     },
   });
   
+  // Load accounts on mount
   useEffect(() => {
-    const credentials = getCredentials();
-    if (credentials) {
-      setHasCredentials(true);
-      form.reset(credentials);
-    }
-  }, [form]);
+    loadAccounts();
+  }, []);
   
-  const onSubmit = async (data: CloudflareCredentials) => {
+  // When currentAccountId changes, load that account's data
+  useEffect(() => {
+    if (currentAccountId) {
+      const account = accounts.find(acc => acc.id === currentAccountId);
+      if (account) {
+        form.reset({
+          name: account.name,
+          apiKey: account.apiKey,
+          email: account.email || '',
+          accountId: account.accountId,
+          zoneId: account.zoneId,
+        });
+        setEditMode(true);
+      }
+    } else {
+      form.reset({
+        name: '',
+        apiKey: '',
+        email: '',
+        accountId: '',
+        zoneId: '',
+      });
+      setEditMode(false);
+    }
+  }, [currentAccountId, accounts, form]);
+  
+  const loadAccounts = () => {
+    const accountsList = getAccountsList() || [];
+    setAccounts(accountsList);
+    
+    const activeAccount = getActiveAccount();
+    if (activeAccount) {
+      setCurrentAccountId(activeAccount.id);
+    } else {
+      setCurrentAccountId(null);
+    }
+  };
+  
+  const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
     try {
       await testCredentials(data);
-      toast({
-        title: "Connection successful",
-        description: "Your Cloudflare credentials are valid and have been saved.",
+      
+      if (editMode && currentAccountId) {
+        // Update existing account
+        updateCredentials(currentAccountId, data);
+      } else {
+        // Create new account
+        saveCredentials(data);
+      }
+      
+      loadAccounts();
+      setEditMode(false);
+      setCurrentAccountId(null);
+      form.reset({
+        name: '',
+        apiKey: '',
+        email: '',
+        accountId: '',
+        zoneId: '',
       });
-      setHasCredentials(true);
-      navigate('/');
+      
+      toast({
+        title: editMode ? "Account updated" : "Account added",
+        description: `${data.name} has been ${editMode ? 'updated' : 'added'} successfully.`,
+      });
+      
+      // Navigate to dashboard after adding first account
+      if (accounts.length === 0) {
+        navigate('/');
+      }
     } catch (error) {
       toast({
         title: "Connection failed",
@@ -82,18 +151,50 @@ const Settings: React.FC = () => {
     }
   };
   
-  const handleClearCredentials = () => {
+  const handleDeleteAccount = () => {
+    if (currentAccountId) {
+      deleteAccount(currentAccountId);
+      loadAccounts();
+      setCurrentAccountId(null);
+      setEditMode(false);
+      form.reset({
+        name: '',
+        apiKey: '',
+        email: '',
+        accountId: '',
+        zoneId: '',
+      });
+    }
+  };
+  
+  const handleClearAll = () => {
     clearCredentials();
-    setHasCredentials(false);
+    loadAccounts();
+    setCurrentAccountId(null);
+    setEditMode(false);
     form.reset({
+      name: '',
       apiKey: '',
       email: '',
       accountId: '',
       zoneId: '',
     });
-    toast({
-      title: "Credentials cleared",
-      description: "Your Cloudflare credentials have been removed.",
+  };
+  
+  const handleAccountSelect = (accountId: string) => {
+    setActiveAccount(accountId);
+    setCurrentAccountId(accountId);
+  };
+  
+  const handleCancelEdit = () => {
+    setEditMode(false);
+    setCurrentAccountId(null);
+    form.reset({
+      name: '',
+      apiKey: '',
+      email: '',
+      accountId: '',
+      zoneId: '',
     });
   };
   
@@ -101,17 +202,62 @@ const Settings: React.FC = () => {
     <div className="container max-w-2xl">
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
       
+      {accounts.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Cloudflare Accounts</CardTitle>
+            <CardDescription>
+              Manage your Cloudflare accounts or add a new one.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AccountSelector 
+              accounts={accounts} 
+              activeAccountId={currentAccountId} 
+              onSelect={handleAccountSelect} 
+            />
+          </CardContent>
+          <CardFooter className="flex justify-between">
+            <Button 
+              variant="destructive" 
+              onClick={handleClearAll}
+            >
+              Clear All Accounts
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+      
       <Card>
         <CardHeader>
-          <CardTitle>Cloudflare API Credentials</CardTitle>
+          <CardTitle>{editMode ? 'Edit Account' : 'Add New Cloudflare Account'}</CardTitle>
           <CardDescription>
-            Enter your Cloudflare API credentials to connect to your account.
-            These credentials are stored securely in your browser.
+            {editMode 
+              ? 'Edit your Cloudflare API credentials for this account.' 
+              : 'Enter your Cloudflare API credentials to add a new account.'}
           </CardDescription>
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Account Name</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="text" 
+                        placeholder="My Cloudflare Account" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
               <FormField
                 control={form.control}
                 name="apiKey"
@@ -186,18 +332,38 @@ const Settings: React.FC = () => {
             </CardContent>
             
             <CardFooter className="flex justify-between">
-              {hasCredentials && (
-                <Button 
-                  type="button" 
-                  variant="destructive" 
-                  onClick={handleClearCredentials}
-                >
-                  Clear Credentials
-                </Button>
+              {editMode ? (
+                <>
+                  <div>
+                    <Button 
+                      type="button" 
+                      variant="destructive" 
+                      onClick={handleDeleteAccount}
+                    >
+                      Delete Account
+                    </Button>
+                  </div>
+                  <div className="space-x-2">
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      onClick={handleCancelEdit}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={isLoading}>
+                      {isLoading ? 'Saving...' : 'Update Account'}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div></div>
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? 'Testing connection...' : 'Add Account'}
+                  </Button>
+                </>
               )}
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Testing connection...' : hasCredentials ? 'Update Credentials' : 'Save Credentials'}
-              </Button>
             </CardFooter>
           </form>
         </Form>
