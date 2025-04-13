@@ -37,7 +37,11 @@ const callCloudflareApi = async (req, endpoint, method, data = null) => {
     // Check if this is a configuration endpoint
     if (endpoint.includes('/configurations')) {
       const tunnelId = endpoint.split('/')[2];
+<<<<<<< HEAD
       fullEndpoint = `/accounts/${accountId}/cfd_tunnel/${tunnelId}/configurations`;
+=======
+      fullEndpoint = `/accounts/${accountId}/tunnels/${tunnelId}/configurations`;
+>>>>>>> 6d253344ddf14c528047a0c4de5dfeb1f9647103
     } else {
       // Regular tunnel endpoints use accounts
       const path = endpoint.replace('/tunnels', '');
