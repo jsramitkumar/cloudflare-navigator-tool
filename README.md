@@ -113,6 +113,6 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## Contact
 
-Your Name - [Your Email]
+Your Name - Amit Gupta
 
-Project Link: [https://github.com/your-username/cloudflare-navigator](https://github.com/your-username/cloudflare-navigator)
+Project Link: [https://github.com/jsramitkumar/cloudflare-navigator-tool](https://github.com/jsramitkumar/cloudflare-navigator-tool)
