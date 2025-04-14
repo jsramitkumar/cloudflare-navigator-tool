@@ -110,14 +110,23 @@ const Settings: React.FC = () => {
   const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
     try {
-      await testCredentials(data);
+      // Ensure data is properly typed for the API functions
+      const credentialData: Omit<CloudflareCredentials, 'id'> = {
+        name: data.name,
+        apiKey: data.apiKey,
+        email: data.email || undefined, // Convert empty string to undefined
+        accountId: data.accountId,
+        zoneId: data.zoneId,
+      };
+      
+      await testCredentials(credentialData);
       
       if (editMode && currentAccountId) {
         // Update existing account
-        updateCredentials(currentAccountId, data);
+        updateCredentials(currentAccountId, credentialData);
       } else {
         // Create new account
-        saveCredentials(data);
+        saveCredentials(credentialData);
       }
       
       loadAccounts();
