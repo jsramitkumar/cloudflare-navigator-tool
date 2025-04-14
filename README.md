@@ -1,73 +1,118 @@
-# Welcome to your Lovable project
 
-## Project info
+# Cloudflare Navigator
 
-**URL**: https://lovable.dev/projects/e06ab159-9a15-42cf-a004-4c146bc4df6a
+## Overview
 
-## How can I edit this code?
+Cloudflare Navigator is a powerful web application that allows you to manage your Cloudflare DNS records, tunnels, and account settings with ease. Built with React, TypeScript, and modern web technologies, this tool provides a seamless interface for Cloudflare users.
 
-There are several ways of editing your application.
+## Features
 
-**Use Lovable**
+- **Multi-Account Management**: Add, edit, and switch between multiple Cloudflare accounts
+- **DNS Record Management**: 
+  - List, create, edit, and delete DNS records
+  - Easy-to-use form for DNS record configuration
+- **Cloudflare Tunnel Configuration**:
+  - View and manage Cloudflare tunnels
+  - Configure tunnel ingress settings
+- **Secure Credential Storage**: 
+  - Local storage of Cloudflare API credentials
+  - Test and validate credentials before saving
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/e06ab159-9a15-42cf-a004-4c146bc4df6a) and start prompting.
+## Prerequisites
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js (version 18 or higher)
+- npm or Bun
+- A Cloudflare account with API access
 
-**Use your preferred IDE**
+## Installation
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 1. Clone the Repository
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```bash
+git clone https://github.com/your-username/cloudflare-navigator.git
+cd cloudflare-navigator
+```
 
-Follow these steps:
+### 2. Install Dependencies
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Using npm:
+```bash
+npm install
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Or using Bun:
+```bash
+bun install
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+### 3. Start the Development Server
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The application will be available at `http://localhost:8080`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Configuration
 
-**Use GitHub Codespaces**
+### Cloudflare API Credentials
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. Navigate to the Settings page in the application
+2. Click "Add New Cloudflare Account"
+3. Enter the following details:
+   - Account Name (custom name for your reference)
+   - API Key
+   - Email (optional)
+   - Account ID
+   - Zone ID
 
-## What technologies are used for this project?
+#### How to Find Your Cloudflare Credentials
 
-This project is built with:
+- **API Key**: 
+  - Log in to Cloudflare
+  - Go to My Profile > API Tokens
+  - Create a new API token with appropriate permissions
+- **Account ID**: Found in the Cloudflare dashboard URL or account settings
+- **Zone ID**: Found in the DNS section of your domain's Cloudflare dashboard
 
-- Vite
+## Project Technologies
+
+- React 18
 - TypeScript
-- React
-- shadcn-ui
+- Vite
 - Tailwind CSS
+- Shadcn UI
+- React Hook Form
+- Zod (form validation)
+- Tanstack React Query
 
-## How can I deploy this project?
+## Security Notes
 
-Simply open [Lovable](https://lovable.dev/projects/e06ab159-9a15-42cf-a004-4c146bc4df6a) and click on Share -> Publish.
+- Credentials are stored locally in your browser
+- Always keep your API keys confidential
+- Use read-only or scoped API tokens when possible
 
-## Can I connect a custom domain to my Lovable project?
+## Troubleshooting
 
-Yes it is!
+- Ensure your API key has the necessary permissions
+- Check your internet connection
+- Verify entered credentials
+- Clear browser cache if experiencing persistent issues
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Contributing
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+## Contact
+
+Your Name - [Your Email]
+
+Project Link: [https://github.com/your-username/cloudflare-navigator](https://github.com/your-username/cloudflare-navigator)
