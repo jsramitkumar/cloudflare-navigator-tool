@@ -24,6 +24,30 @@ Cloudflare Navigator is a powerful web application that allows you to manage you
 - npm or Bun
 - A Cloudflare account with API access
 
+## Network Requirements
+
+### Internet Connectivity
+- Stable broadband internet connection
+- Minimum bandwidth: 1 Mbps recommended
+- Outbound HTTPS access (Port 443) to:
+  - `api-cloudflare.endusercompute.in`
+  - `api.cloudflare.com`
+
+### Firewall and Security
+- Ensure your network allows outbound HTTPS connections
+- Whitelist the following domains if using strict network policies:
+  - `api-cloudflare.endusercompute.in`
+  - `api.cloudflare.com`
+
+### Proxy Configuration
+- If your organization uses a proxy server, configure the application to use the proxy settings
+- Supported proxy types: HTTP, HTTPS
+
+### DNS and SSL/TLS
+- The application requires secure HTTPS connections
+- SSL/TLS version 1.2 or higher recommended
+- Valid SSL certificates must be in place for API communication
+
 ## Installation
 
 ### 1. Clone the Repository
@@ -92,12 +116,13 @@ The application will be available at `http://localhost:8080`
 - Always keep your API keys confidential
 - Use read-only or scoped API tokens when possible
 
-## Troubleshooting
+## Troubleshooting Network Issues
 
-- Ensure your API key has the necessary permissions
-- Check your internet connection
-- Verify entered credentials
-- Clear browser cache if experiencing persistent issues
+1. Check your internet connection
+2. Verify firewall and proxy settings
+3. Ensure you have the latest version of the application
+4. Check API endpoint status
+5. Validate SSL/TLS configuration
 
 ## Contributing
 
@@ -116,3 +141,4 @@ Distributed under the MIT License. See `LICENSE` for more information.
 Your Name - Amit Gupta
 
 Project Link: [https://github.com/jsramitkumar/cloudflare-navigator-tool](https://github.com/jsramitkumar/cloudflare-navigator-tool)
+
