@@ -6,12 +6,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - API_URL=${API_URL:-https://api-cloudflare.endusercompute.in}
     ports:
-      - "8080:8080"  # Frontend
-      - "3001:3001"  # Backend API
+      - "${FRONTEND_PORT:-8080}:8080"  # Frontend
+      - "${BACKEND_PORT:-3001}:3001"  # Backend API
     restart: unless-stopped
     environment:
       - NODE_ENV=production
+      - API_URL=${API_URL:-https://api-cloudflare.endusercompute.in}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:8080}
+      - PORT=${BACKEND_PORT:-3001}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
       interval: 30s

@@ -11,7 +11,11 @@ RUN npm ci
 # Copy the rest of the frontend code
 COPY . .
 
-# Build the React app
+# Set default URLs that can be overridden at build time
+ARG API_URL=https://api-cloudflare.endusercompute.in
+ENV VITE_API_URL=$API_URL
+
+# Build the React app with environment variables
 RUN npm run build
 
 # Stage 2: Build the Express backend
@@ -32,6 +36,8 @@ FROM node:20-alpine
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3001
+ENV API_URL=https://api-cloudflare.endusercompute.in
+ENV FRONTEND_URL=http://localhost:8080
 
 # Install serve for frontend static serving
 RUN npm install -g serve

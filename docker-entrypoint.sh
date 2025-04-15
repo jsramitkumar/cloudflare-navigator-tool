@@ -1,6 +1,12 @@
 
 #!/bin/sh
 
+# Log environment information
+echo "Starting with configuration:"
+echo "API URL: ${API_URL}"
+echo "Frontend URL: ${FRONTEND_URL}"
+echo "Backend Port: ${PORT}"
+
 # Start the Express backend server
 cd /app/server
 node index.js &

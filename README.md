@@ -77,6 +77,44 @@ npm run dev
 
 The application will be available at `http://localhost:8080`
 
+## Docker Deployment
+
+You can deploy Cloudflare Navigator using Docker with customizable configuration.
+
+### Environment Variables
+
+The following environment variables can be configured:
+
+- `API_URL`: The URL of the Cloudflare API (default: `https://api-cloudflare.endusercompute.in`)
+- `FRONTEND_URL`: The URL where the frontend is accessible (default: `http://localhost:8080`)
+- `FRONTEND_PORT`: The port to expose the frontend on (default: `8080`)
+- `BACKEND_PORT`: The port for the backend API (default: `3001`)
+
+### Running with Docker Compose
+
+1. Create a `.env` file with your configuration:
+
+```
+API_URL=https://custom-api-url.example.com
+FRONTEND_URL=https://navigator.example.com
+FRONTEND_PORT=80
+BACKEND_PORT=3000
+```
+
+2. Run with Docker Compose:
+
+```bash
+docker-compose up -d
+```
+
+### Building with Custom Configuration
+
+You can also build the Docker image with custom configuration:
+
+```bash
+docker build --build-arg API_URL=https://custom-api-url.example.com -t cloudflare-navigator .
+```
+
 ## Configuration
 
 ### Cloudflare API Credentials
@@ -141,4 +179,3 @@ Distributed under the MIT License. See `LICENSE` for more information.
 Your Name - Amit Gupta
 
 Project Link: [https://github.com/jsramitkumar/cloudflare-navigator-tool](https://github.com/jsramitkumar/cloudflare-navigator-tool)
-

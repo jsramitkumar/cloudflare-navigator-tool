@@ -1,3 +1,4 @@
+
 import { toast } from "@/components/ui/use-toast";
 
 // Define types for Cloudflare DNS records
@@ -185,7 +186,8 @@ const makeRequest = async (
     throw new Error('No Cloudflare credentials found. Please set your API credentials first.');
   }
   
-  const baseUrl = 'https://api-cloudflare.endusercompute.in/api/cloudflare'; // Updated backend URL
+  // Use environment variable if available, otherwise fall back to the hardcoded URL
+  const baseUrl = import.meta.env.VITE_API_URL || 'https://api-cloudflare.endusercompute.in/api/cloudflare';
   
   try {
     const response = await fetch(`${baseUrl}${endpoint}`, {

@@ -1,11 +1,17 @@
+
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const app = express();
 const PORT = process.env.PORT || 3001;
+const API_URL = process.env.API_URL || 'https://api.cloudflare.com/client/v4';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:8080';
 
-// Enable CORS for frontend
-app.use(cors());
+// Enable CORS for frontend with dynamic origin
+app.use(cors({
+  origin: FRONTEND_URL,
+  credentials: true
+}));
 app.use(express.json());
 
 // Extract Cloudflare credentials from headers
@@ -23,7 +29,7 @@ const callCloudflareApi = async (req, endpoint, method, data = null) => {
   const { apiKey, email, accountId, zoneId } = extractCredentials(req);
   
   // Construct the base URL for different API resources
-  let baseUrl = 'https://api.cloudflare.com/client/v4';
+  let baseUrl = API_URL;
   
   // Determine the full endpoint based on the resource type
   let fullEndpoint = '';
@@ -51,6 +57,7 @@ const callCloudflareApi = async (req, endpoint, method, data = null) => {
   }
   
   console.log(`Making ${method} request to: ${baseUrl}${fullEndpoint}`);
+  console.log(`Using API URL: ${API_URL}`);
   
   try {
     // Use Global API Key authentication
@@ -201,6 +208,8 @@ app.delete('/api/cloudflare/tunnels/:id/configurations', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`API URL: ${API_URL}`);
+  console.log(`Frontend URL: ${FRONTEND_URL}`);
 });
 
 // Add a catch-all route for unmatched routes
