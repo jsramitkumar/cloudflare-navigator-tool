@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/use-toast";
 
 // Define types for Cloudflare DNS records
@@ -186,8 +185,15 @@ const makeRequest = async (
     throw new Error('No Cloudflare credentials found. Please set your API credentials first.');
   }
   
-  // Use environment variable if available, otherwise fall back to the hardcoded URL
-  const baseUrl = import.meta.env.VITE_API_URL || '/api/cloudflare';
+  // Use environment variable if available, otherwise use the deployed API URL or fallback to local
+  let baseUrl = '/api/cloudflare';
+  
+  // If VITE_API_URL is set and it's not an empty string, use that
+  if (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.trim() !== '') {
+    baseUrl = import.meta.env.VITE_API_URL;
+  }
+  
+  console.log(`API request to: ${baseUrl}${endpoint}`);
   
   try {
     const response = await fetch(`${baseUrl}${endpoint}`, {
@@ -202,21 +208,28 @@ const makeRequest = async (
       body: body ? JSON.stringify(body) : undefined,
     });
     
+    const data = await response.json();
+    
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
       console.error('API request failed:', {
         status: response.status,
         statusText: response.statusText,
         endpoint,
-        errorData
+        data
       });
-      throw new Error(errorData.message || `Request failed with status ${response.status}`);
+      
+      throw new Error(data.message || `Request failed with status ${response.status}`);
     }
     
-    const data = await response.json();
     return data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('API request failed:', error);
+    
+    // If error is from fetch or JSON parsing
+    if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+      throw new Error(`Network error: Could not connect to API server at ${baseUrl}. Please check your network connection and API server status.`);
+    }
+    
     throw error;
   }
 };
@@ -313,6 +326,7 @@ export const testCredentials = async (credentials: Omit<CloudflareCredentials, '
     
     // Try to connect using the test-connection endpoint
     const response = await makeRequest('/test-connection');
+    console.log('Test connection response:', response);
     
     // Restore original active account and accounts
     if (currentAccounts) {
@@ -327,7 +341,7 @@ export const testCredentials = async (credentials: Omit<CloudflareCredentials, '
       localStorage.removeItem(ACTIVE_ACCOUNT_KEY);
     }
     
-    return true;
+    return response.success === true;
   } catch (error) {
     console.error('Test connection failed:', error);
     

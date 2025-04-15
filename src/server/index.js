@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -33,6 +32,17 @@ const extractCredentials = (req) => {
 // Make request to Cloudflare API
 const callCloudflareApi = async (req, endpoint, method, data = null) => {
   const { apiKey, email, accountId, zoneId } = extractCredentials(req);
+  
+  // Check if credentials are provided
+  if (!apiKey || !zoneId) {
+    throw {
+      status: 400,
+      message: 'Missing required credentials',
+      details: {
+        errors: [{ message: 'API key and Zone ID are required' }]
+      }
+    };
+  }
   
   // Construct the base URL for different API resources
   let baseUrl = API_URL;
@@ -115,10 +125,13 @@ app.get('/api/cloudflare/test-connection', async (req, res) => {
 // DNS Records endpoints
 app.get('/api/cloudflare/dns', async (req, res) => {
   try {
+    console.log('DNS Records list request received');
     const data = await callCloudflareApi(req, '/dns', 'GET');
+    console.log('DNS Records response received:', data.success);
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ success: false, message: error.message });
+    console.error('DNS Records error:', error.message);
+    res.status(error.status || 500).json({ success: false, message: error.message, details: error.details });
   }
 });
 
@@ -233,13 +246,24 @@ app.delete('/api/cloudflare/tunnels/:id/configurations', async (req, res) => {
   }
 });
 
+// Add a global error handler
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({
+    success: false,
+    message: 'Internal server error',
+    details: process.env.NODE_ENV === 'production' ? null : err.stack
+  });
+});
+
+// Start server BEFORE adding catch-all route
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`API URL: ${API_URL}`);
   console.log(`Frontend URL: ${FRONTEND_URL}`);
 });
 
-// Add a catch-all route for unmatched routes
+// Add a catch-all route for unmatched routes AFTER listen
 app.use((req, res) => {
   console.log(`404 Not Found: ${req.method} ${req.path}`);
   res.status(404).json({ success: false, message: 'API endpoint not found' });
