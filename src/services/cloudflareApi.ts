@@ -186,7 +186,7 @@ const makeRequest = async (
   }
   
   // Use environment variable if available, otherwise use the deployed API URL or fallback to local
-  let baseUrl = '/api/cloudflare';
+  let baseUrl = 'http://localhost:3001/api/cloudflare';
   
   // If VITE_API_URL is set and it's not an empty string, use that
   if (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.trim() !== '') {
