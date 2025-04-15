@@ -277,7 +277,7 @@ const TunnelDetails: React.FC<TunnelDetailsProps> = ({ tunnelId, onBack }) => {
           toast({
             title: "Hostname updated, DNS record failed",
             description: `Hostname updated, but DNS CNAME record update failed. You may need to update it manually.`,
-            variant: "warning",
+            variant: "destructive", // Changed from "warning" to "destructive"
           });
         }
       } else {
