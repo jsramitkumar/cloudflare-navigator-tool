@@ -187,7 +187,7 @@ const makeRequest = async (
   }
   
   // Use environment variable if available, otherwise fall back to the hardcoded URL
-  const baseUrl = import.meta.env.VITE_API_URL || 'https://api-cloudflare.endusercompute.in/api/cloudflare';
+  const baseUrl = import.meta.env.VITE_API_URL || '/api/cloudflare';
   
   try {
     const response = await fetch(`${baseUrl}${endpoint}`, {
@@ -202,12 +202,18 @@ const makeRequest = async (
       body: body ? JSON.stringify(body) : undefined,
     });
     
-    const data = await response.json();
-    
     if (!response.ok) {
-      throw new Error(data.message || 'An error occurred');
+      const errorData = await response.json().catch(() => ({}));
+      console.error('API request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        endpoint,
+        errorData
+      });
+      throw new Error(errorData.message || `Request failed with status ${response.status}`);
     }
     
+    const data = await response.json();
     return data;
   } catch (error) {
     console.error('API request failed:', error);
@@ -299,14 +305,22 @@ export const testCredentials = async (credentials: Omit<CloudflareCredentials, '
     
     // Temporarily set it as active account
     const currentActiveId = getActiveAccountId();
+    const currentAccounts = localStorage.getItem(CREDENTIALS_STORAGE_KEY);
+    
+    // Save the temporary account
     localStorage.setItem(CREDENTIALS_STORAGE_KEY, JSON.stringify([tempAccount]));
     setActiveAccount(tempAccount.id);
     
-    // Try to list DNS records as a test
-    await dnsRecordsApi.listRecords();
+    // Try to connect using the test-connection endpoint
+    const response = await makeRequest('/test-connection');
     
-    // Restore original active account and remove temp account
-    localStorage.removeItem(CREDENTIALS_STORAGE_KEY);
+    // Restore original active account and accounts
+    if (currentAccounts) {
+      localStorage.setItem(CREDENTIALS_STORAGE_KEY, currentAccounts);
+    } else {
+      localStorage.removeItem(CREDENTIALS_STORAGE_KEY);
+    }
+    
     if (currentActiveId) {
       setActiveAccount(currentActiveId);
     } else {
@@ -315,12 +329,24 @@ export const testCredentials = async (credentials: Omit<CloudflareCredentials, '
     
     return true;
   } catch (error) {
-    // Restore original active account and cleanup
-    localStorage.removeItem(CREDENTIALS_STORAGE_KEY);
+    console.error('Test connection failed:', error);
+    
+    // Restore original state and cleanup
     const currentActiveId = getActiveAccountId();
-    if (currentActiveId === 'temp-test-account') {
+    const currentAccounts = localStorage.getItem(CREDENTIALS_STORAGE_KEY);
+    
+    if (currentAccounts && currentActiveId !== 'temp-test-account') {
+      localStorage.setItem(CREDENTIALS_STORAGE_KEY, currentAccounts);
+    } else {
+      localStorage.removeItem(CREDENTIALS_STORAGE_KEY);
+    }
+    
+    if (currentActiveId && currentActiveId !== 'temp-test-account') {
+      setActiveAccount(currentActiveId);
+    } else {
       localStorage.removeItem(ACTIVE_ACCOUNT_KEY);
     }
+    
     throw error;
   }
 };

@@ -14,6 +14,12 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
 // Extract Cloudflare credentials from headers
 const extractCredentials = (req) => {
   return {
@@ -57,7 +63,6 @@ const callCloudflareApi = async (req, endpoint, method, data = null) => {
   }
   
   console.log(`Making ${method} request to: ${baseUrl}${fullEndpoint}`);
-  console.log(`Using API URL: ${API_URL}`);
   
   try {
     // Use Global API Key authentication
@@ -77,6 +82,13 @@ const callCloudflareApi = async (req, endpoint, method, data = null) => {
     return response.data;
   } catch (error) {
     console.error('Cloudflare API error:', error.response?.data || error.message);
+    console.error('Request details:', {
+      method,
+      url: `${baseUrl}${fullEndpoint}`,
+      headers: { 'X-Auth-Key': '***REDACTED***', 'X-Auth-Email': email },
+      data: method !== 'GET' ? JSON.stringify(data) : undefined
+    });
+    
     throw {
       status: error.response?.status || 500,
       message: error.response?.data?.errors?.[0]?.message || 'An error occurred',
@@ -84,6 +96,21 @@ const callCloudflareApi = async (req, endpoint, method, data = null) => {
     };
   }
 };
+
+// Test connection endpoint
+app.get('/api/cloudflare/test-connection', async (req, res) => {
+  try {
+    // Make a simple API call to verify credentials
+    const data = await callCloudflareApi(req, '/zones', 'GET');
+    res.json({ success: true, message: 'Connection successful' });
+  } catch (error) {
+    res.status(error.status || 500).json({ 
+      success: false, 
+      message: `Connection failed: ${error.message}`,
+      details: error.details
+    });
+  }
+});
 
 // DNS Records endpoints
 app.get('/api/cloudflare/dns', async (req, res) => {
@@ -214,6 +241,7 @@ app.listen(PORT, () => {
 
 // Add a catch-all route for unmatched routes
 app.use((req, res) => {
+  console.log(`404 Not Found: ${req.method} ${req.path}`);
   res.status(404).json({ success: false, message: 'API endpoint not found' });
 });
 
