@@ -38,7 +38,7 @@ import {
   ExternalLink,
   ArrowLeft
 } from 'lucide-react';
-import { CloudflareTunnel, TunnelConfig, TunnelIngress, tunnelsApi } from '@/services/cloudflareApi';
+import { CloudflareTunnel, TunnelConfig, TunnelIngress, tunnelsApi, dnsRecordsApi } from '@/services/cloudflareApi';
 import AddIngressDialog from './AddIngressDialog';
 import EditIngressDialog from './EditIngressDialog';
 
@@ -104,7 +104,7 @@ const TunnelDetails: React.FC<TunnelDetailsProps> = ({ tunnelId, onBack }) => {
   }, [tunnelId, navigate, onBack]);
   
   const handleAddIngress = async (data: any) => {
-    if (!config) return;
+    if (!config || !tunnel) return;
     
     try {
       // Format the ingress entry
@@ -148,11 +148,32 @@ const TunnelDetails: React.FC<TunnelDetailsProps> = ({ tunnelId, onBack }) => {
       // Update the tunnel configuration
       await tunnelsApi.updateTunnelConfig(tunnelId, updatedConfig);
       setConfig(updatedConfig);
+      
+      // Create a corresponding CNAME DNS record
+      try {
+        // Create a CNAME record pointing to the tunnel
+        await dnsRecordsApi.createRecord({
+          type: 'CNAME',
+          name: data.hostname.split('.')[0], // Extract subdomain part
+          content: `${tunnel.id}.cfargotunnel.com`, // Standard Cloudflare Argo tunnel format
+          ttl: 1, // Auto TTL (Cloudflare managed)
+          proxied: true // Enable Cloudflare proxy
+        });
+        
+        toast({
+          title: "Hostname and DNS record added",
+          description: `Public hostname "${data.hostname}" has been added with a CNAME DNS record.`,
+        });
+      } catch (dnsError) {
+        console.error('Failed to create DNS record:', dnsError);
+        toast({
+          title: "Hostname added, DNS record failed",
+          description: `Public hostname added, but DNS CNAME record creation failed. You may need to create it manually.`,
+          variant: "destructive",
+        });
+      }
+      
       setIsAddDialogOpen(false);
-      toast({
-        title: "Hostname added",
-        description: `Public hostname "${data.hostname}" has been added.`,
-      });
     } catch (error) {
       console.error('Failed to add hostname:', error);
       toast({
@@ -164,7 +185,7 @@ const TunnelDetails: React.FC<TunnelDetailsProps> = ({ tunnelId, onBack }) => {
   };
   
   const handleEditIngress = async (data: any) => {
-    if (!config || !editIngress) return;
+    if (!config || !editIngress || !tunnel) return;
     
     try {
       // Find the index of the ingress to update
@@ -212,12 +233,62 @@ const TunnelDetails: React.FC<TunnelDetailsProps> = ({ tunnelId, onBack }) => {
       // Update the tunnel configuration
       await tunnelsApi.updateTunnelConfig(tunnelId, updatedConfig);
       setConfig(updatedConfig);
+      
+      // If hostname changed, update the DNS record too
+      if (editIngress.hostname !== data.hostname) {
+        try {
+          // First try to find if there's an existing CNAME record for the old hostname
+          const records = await dnsRecordsApi.listRecords();
+          const oldHostnamePrefix = editIngress.hostname.split('.')[0];
+          const existingRecord = records.find(
+            record => record.type === 'CNAME' && record.name === oldHostnamePrefix
+          );
+          
+          if (existingRecord) {
+            // Update the existing record
+            await dnsRecordsApi.updateRecord(existingRecord.id, {
+              name: data.hostname.split('.')[0], // Extract subdomain part
+              content: `${tunnel.id}.cfargotunnel.com`, // Standard Cloudflare Argo tunnel format
+              ttl: 1,
+              proxied: true
+            });
+            
+            toast({
+              title: "Hostname and DNS record updated",
+              description: `Public hostname "${data.hostname}" has been updated with its CNAME DNS record.`,
+            });
+          } else {
+            // Create a new record
+            await dnsRecordsApi.createRecord({
+              type: 'CNAME',
+              name: data.hostname.split('.')[0],
+              content: `${tunnel.id}.cfargotunnel.com`,
+              ttl: 1,
+              proxied: true
+            });
+            
+            toast({
+              title: "Hostname updated and DNS record created",
+              description: `Public hostname "${data.hostname}" has been updated and a new CNAME DNS record has been created.`,
+            });
+          }
+        } catch (dnsError) {
+          console.error('Failed to update DNS record:', dnsError);
+          toast({
+            title: "Hostname updated, DNS record failed",
+            description: `Hostname updated, but DNS CNAME record update failed. You may need to update it manually.`,
+            variant: "warning",
+          });
+        }
+      } else {
+        toast({
+          title: "Hostname updated",
+          description: `Public hostname "${data.hostname}" has been updated.`,
+        });
+      }
+      
       setIsEditDialogOpen(false);
       setEditIngress(null);
-      toast({
-        title: "Hostname updated",
-        description: `Public hostname "${data.hostname}" has been updated.`,
-      });
     } catch (error) {
       console.error('Failed to update hostname:', error);
       toast({
@@ -249,10 +320,34 @@ const TunnelDetails: React.FC<TunnelDetailsProps> = ({ tunnelId, onBack }) => {
       // Update the tunnel configuration using the correct cfd_tunnel endpoint
       await tunnelsApi.updateTunnelConfig(tunnelId, updatedConfig);
       setConfig(updatedConfig);
-      toast({
-        title: "Hostname deleted",
-        description: `Public hostname "${ingress.hostname}" has been deleted.`,
-      });
+      
+      // Also delete the corresponding DNS record if it exists
+      try {
+        const records = await dnsRecordsApi.listRecords();
+        const hostnamePrefix = ingress.hostname.split('.')[0];
+        const existingRecord = records.find(
+          record => record.type === 'CNAME' && record.name === hostnamePrefix
+        );
+        
+        if (existingRecord) {
+          await dnsRecordsApi.deleteRecord(existingRecord.id);
+          toast({
+            title: "Hostname and DNS record deleted",
+            description: `Public hostname "${ingress.hostname}" and its CNAME DNS record have been deleted.`,
+          });
+        } else {
+          toast({
+            title: "Hostname deleted",
+            description: `Public hostname "${ingress.hostname}" has been deleted.`,
+          });
+        }
+      } catch (dnsError) {
+        console.error('Error checking/deleting DNS record:', dnsError);
+        toast({
+          title: "Hostname deleted",
+          description: `Public hostname "${ingress.hostname}" deleted, but could not check for corresponding DNS record.`,
+        });
+      }
     } catch (error) {
       console.error('Failed to delete hostname:', error);
       toast({
