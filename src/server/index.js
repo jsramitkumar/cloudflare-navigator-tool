@@ -28,6 +28,7 @@ app.use(cors({
     
     // Allow FRONTEND_URL or localhost
     if(origin === FRONTEND_URL || origin.startsWith('http://localhost') || origin.includes('127.0.0.1')) {
+      console.log(`CORS allowed request from origin: ${origin}`);
       return callback(null, true);
     }
     
