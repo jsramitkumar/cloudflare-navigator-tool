@@ -22,6 +22,7 @@ Cloudflare Navigator is a powerful web application that allows you to manage you
 
 - Node.js (version 18 or higher)
 - npm or Bun
+- Docker (for containerized deployment)
 - A Cloudflare account with API access
 
 ## Network Requirements
@@ -39,80 +40,48 @@ Cloudflare Navigator is a powerful web application that allows you to manage you
   - `api-cloudflare.endusercompute.in`
   - `api.cloudflare.com`
 
-### Proxy Configuration
-- If your organization uses a proxy server, configure the application to use the proxy settings
-- Supported proxy types: HTTP, HTTPS
-
-### DNS and SSL/TLS
-- The application requires secure HTTPS connections
-- SSL/TLS version 1.2 or higher recommended
-- Valid SSL certificates must be in place for API communication
-
-## Installation
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/your-username/cloudflare-navigator.git
-cd cloudflare-navigator
-```
-
-### 2. Install Dependencies
-
-Using npm:
-```bash
-npm install
-```
-
-Or using Bun:
-```bash
-bun install
-```
-
-### 3. Start the Development Server
-
-```bash
-npm run dev
-```
-
-The application will be available at `http://localhost:8080`
-
 ## Docker Deployment
 
-You can deploy Cloudflare Navigator using Docker with customizable configuration.
+You can deploy Cloudflare Navigator using Docker with extensive customization options.
 
-### Environment Variables
+### Environment Variables for Container Configuration
 
-The following environment variables can be configured:
+The following environment variables can be configured during container deployment:
 
-- `API_URL`: The URL of the Cloudflare API (default: `https://api-cloudflare.endusercompute.in`)
-- `FRONTEND_URL`: The URL where the frontend is accessible (default: `http://localhost:8080`)
-- `FRONTEND_PORT`: The port to expose the frontend on (default: `8080`)
-- `BACKEND_PORT`: The port for the backend API (default: `3001`)
+| Variable | Description | Default Value | Example |
+|----------|-------------|---------------|---------|
+| `API_URL` | Cloudflare API endpoint | `https://api.cloudflare.com/client/v4` | `https://custom-api.cloudflare.com` |
+| `FRONTEND_URL` | URL where the frontend is accessible | `http://localhost:8080` | `https://cloudflare.example.com` |
+| `BACKEND_URL` | URL where the backend is accessible | `http://localhost:3001` | `https://backend.example.com` |
+| `FRONTEND_PORT` | Port exposed for the frontend | `8080` | `9090` |
+| `BACKEND_PORT` | Port exposed for the backend API | `3001` | `4000` |
 
-### Running with Docker Compose
+### Deployment Examples
 
-1. Create a `.env` file with your configuration:
-
-```
-API_URL=https://custom-api-url.example.com
-FRONTEND_URL=https://navigator.example.com
-FRONTEND_PORT=80
-BACKEND_PORT=3000
-```
-
-2. Run with Docker Compose:
-
+#### Basic Docker Run
 ```bash
-docker-compose up -d
+docker run -d \
+  -p 8080:8080 \
+  -p 3001:3001 \
+  -e FRONTEND_PORT=8080 \
+  -e BACKEND_PORT=3001 \
+  jsrankit/dns-cloudflare:latest
 ```
 
-### Building with Custom Configuration
-
-You can also build the Docker image with custom configuration:
-
-```bash
-docker build --build-arg API_URL=https://custom-api-url.example.com -t cloudflare-navigator .
+#### Docker Compose Example
+```yaml
+version: '3.8'
+services:
+  cloudflare-navigator:
+    image: jsrankit/dns-cloudflare:latest
+    ports:
+      - "9090:9090"
+      - "4000:4000"
+    environment:
+      - FRONTEND_URL=https://cloudflare.example.com
+      - BACKEND_URL=https://backend.example.com
+      - FRONTEND_PORT=9090
+      - BACKEND_PORT=4000
 ```
 
 ## Configuration
@@ -128,15 +97,6 @@ docker build --build-arg API_URL=https://custom-api-url.example.com -t cloudflar
    - Account ID
    - Zone ID
 
-#### How to Find Your Cloudflare Credentials
-
-- **API Key**: 
-  - Log in to Cloudflare
-  - Go to My Profile > API Tokens
-  - Create a new API token with appropriate permissions
-- **Account ID**: Found in the Cloudflare dashboard URL or account settings
-- **Zone ID**: Found in the DNS section of your domain's Cloudflare dashboard
-
 ## Project Technologies
 
 - React 18
@@ -148,34 +108,18 @@ docker build --build-arg API_URL=https://custom-api-url.example.com -t cloudflar
 - Zod (form validation)
 - Tanstack React Query
 
-## Security Notes
+## Troubleshooting
 
-- Credentials are stored locally in your browser
-- Always keep your API keys confidential
-- Use read-only or scoped API tokens when possible
-
-## Troubleshooting Network Issues
-
-1. Check your internet connection
-2. Verify firewall and proxy settings
-3. Ensure you have the latest version of the application
-4. Check API endpoint status
-5. Validate SSL/TLS configuration
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+- Verify all environment variables are correctly set
+- Check network connectivity to Cloudflare API
+- Ensure Docker network settings allow proper routing
+- Validate API credentials in the application settings
 
 ## License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the MIT License.
 
 ## Contact
 
-Your Name - Amit Gupta
-
+Amit Gupta
 Project Link: [https://github.com/jsramitkumar/cloudflare-navigator-tool](https://github.com/jsramitkumar/cloudflare-navigator-tool)
