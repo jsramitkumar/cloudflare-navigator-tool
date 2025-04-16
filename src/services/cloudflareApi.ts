@@ -185,12 +185,24 @@ const makeRequest = async (
     throw new Error('No Cloudflare credentials found. Please set your API credentials first.');
   }
   
-  // Use environment variable if available, otherwise use the deployed API URL or fallback to local
-  let baseUrl = 'http://localhost:3001/api/cloudflare';
+  // Get the backend API URL from environment variable or use a dynamic approach
+  let baseUrl;
   
-  // If VITE_API_URL is set and it's not an empty string, use that
-  if (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.trim() !== '') {
+  // Check for VITE_BACKEND_URL first
+  if (import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL.trim() !== '') {
+    baseUrl = `${import.meta.env.VITE_BACKEND_URL}/api/cloudflare`;
+  }
+  // Then check for VITE_API_URL for backward compatibility
+  else if (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.trim() !== '') {
     baseUrl = import.meta.env.VITE_API_URL;
+  }
+  // If neither is available, try to determine the URL dynamically based on the current location
+  else {
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    // If port is 8080 (frontend), assume backend is on 3001, otherwise use the same port
+    const port = window.location.port === '8080' ? '3001' : window.location.port;
+    baseUrl = `${protocol}//${hostname}:${port}/api/cloudflare`;
   }
   
   console.log(`API request to: ${baseUrl}${endpoint}`);
@@ -327,6 +339,10 @@ export const testCredentials = async (credentials: Omit<CloudflareCredentials, '
     // Try to connect using the test-connection endpoint
     const response = await makeRequest('/test-connection');
     console.log('Test connection response:', response);
+    
+    if (response.serverInfo) {
+      console.log('Server info:', response.serverInfo);
+    }
     
     // Restore original active account and accounts
     if (currentAccounts) {

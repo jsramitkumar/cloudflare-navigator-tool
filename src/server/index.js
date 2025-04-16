@@ -5,6 +5,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const API_URL = process.env.API_URL || 'https://api.cloudflare.com/client/v4';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:8080';
+const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${PORT}`;
 
 // Enable CORS for frontend with dynamic origin
 app.use(cors({
@@ -16,6 +17,7 @@ app.use(express.json());
 // Request logging middleware
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  console.log(`Request from: ${req.headers.origin || 'Unknown origin'}`);
   next();
 });
 
@@ -112,12 +114,29 @@ app.get('/api/cloudflare/test-connection', async (req, res) => {
   try {
     // Make a simple API call to verify credentials
     const data = await callCloudflareApi(req, '/zones', 'GET');
-    res.json({ success: true, message: 'Connection successful' });
+    console.log('Test connection successful');
+    res.json({ 
+      success: true, 
+      message: 'Connection successful',
+      serverInfo: {
+        backendUrl: BACKEND_URL,
+        apiUrl: API_URL,
+        frontendUrl: FRONTEND_URL,
+        port: PORT
+      }
+    });
   } catch (error) {
+    console.error('Test connection failed:', error.message);
     res.status(error.status || 500).json({ 
       success: false, 
       message: `Connection failed: ${error.message}`,
-      details: error.details
+      details: error.details,
+      serverInfo: {
+        backendUrl: BACKEND_URL,
+        apiUrl: API_URL,
+        frontendUrl: FRONTEND_URL,
+        port: PORT
+      }
     });
   }
 });
@@ -252,7 +271,13 @@ app.use((err, req, res, next) => {
   res.status(500).json({
     success: false,
     message: 'Internal server error',
-    details: process.env.NODE_ENV === 'production' ? null : err.stack
+    details: process.env.NODE_ENV === 'production' ? null : err.stack,
+    serverInfo: {
+      backendUrl: BACKEND_URL,
+      apiUrl: API_URL,
+      frontendUrl: FRONTEND_URL,
+      port: PORT
+    }
   });
 });
 
@@ -261,12 +286,22 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`API URL: ${API_URL}`);
   console.log(`Frontend URL: ${FRONTEND_URL}`);
+  console.log(`Backend URL: ${BACKEND_URL}`);
 });
 
 // Add a catch-all route for unmatched routes AFTER listen
 app.use((req, res) => {
   console.log(`404 Not Found: ${req.method} ${req.path}`);
-  res.status(404).json({ success: false, message: 'API endpoint not found' });
+  res.status(404).json({ 
+    success: false, 
+    message: 'API endpoint not found',
+    serverInfo: {
+      backendUrl: BACKEND_URL,
+      apiUrl: API_URL,
+      frontendUrl: FRONTEND_URL,
+      port: PORT
+    }
+  });
 });
 
 module.exports = app;

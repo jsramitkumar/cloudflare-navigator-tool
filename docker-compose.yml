@@ -6,17 +6,19 @@ services:
     image: jsrankit/dns-cloudflare:latest
     container_name: ENDUSERCOMPUTE_FE_CLOUDFLARE
     ports:
-      - "${FRONTEND_PORT:-8080}:8080"  # Frontend
-      - "${BACKEND_PORT:-3001}:3001"  # Backend API
+      - "${FRONTEND_PORT:-8080}:${FRONTEND_PORT:-8080}"  # Frontend
+      - "${BACKEND_PORT:-3001}:${BACKEND_PORT:-3001}"  # Backend API
     restart: always
     environment:
       - NODE_ENV=production
-      - API_URL=${API_URL:-https://api-cloudflare.endusercompute.in}
-      - FRONTEND_URL=${FRONTEND_URL:-https://cloudflare-dns.endusercompute.in}
+      - API_URL=${API_URL:-https://api.cloudflare.com/client/v4}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:8080}
+      - BACKEND_URL=${BACKEND_URL:-http://localhost:3001}
       - PORT=${BACKEND_PORT:-3001}
       - FRONTEND_PORT=${FRONTEND_PORT:-8080}
+      - BACKEND_PORT=${BACKEND_PORT:-3001}
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${FRONTEND_PORT:-8080}/"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -4,8 +4,10 @@
 # Log environment information
 echo "Starting with configuration:"
 echo "API URL: ${API_URL}"
-echo "Frontend URL: ${FRONTEND_URL}"
-echo "Backend Port: ${PORT}"
+echo "FRONTEND URL: ${FRONTEND_URL}"
+echo "BACKEND URL: ${BACKEND_URL:-http://localhost:${PORT}}"
+echo "Frontend Port: ${FRONTEND_PORT:-8080}"
+echo "Backend Port: ${PORT:-3001}"
 
 # Start the Express backend server
 cd /app/server
@@ -13,7 +15,7 @@ node index.js &
 
 # Serve the frontend using a simple HTTP server
 cd /app
-npx serve -s dist -l 8080
+npx serve -s dist -l ${FRONTEND_PORT:-8080}
 
 # Keep the container running
 wait

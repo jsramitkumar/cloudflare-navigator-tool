@@ -12,8 +12,10 @@ RUN npm ci
 COPY . .
 
 # Set default URLs that can be overridden at build time
-ARG API_URL=https://api-cloudflare.endusercompute.in
+ARG API_URL=https://api.cloudflare.com/client/v4
+ARG BACKEND_URL=http://localhost:3001
 ENV VITE_API_URL=$API_URL
+ENV VITE_BACKEND_URL=$BACKEND_URL
 
 # Build the React app with environment variables
 RUN npm run build
@@ -33,11 +35,14 @@ COPY src/server ./
 # Stage 3: Production environment
 FROM node:20-alpine
 
-# Set environment variables
+# Set environment variables with defaults that can be overridden
 ENV NODE_ENV=production
 ENV PORT=3001
-ENV API_URL=https://api-cloudflare.endusercompute.in
+ENV API_URL=https://api.cloudflare.com/client/v4
 ENV FRONTEND_URL=http://localhost:8080
+ENV BACKEND_URL=http://localhost:3001
+ENV FRONTEND_PORT=8080
+ENV BACKEND_PORT=3001
 
 # Install serve for frontend static serving
 RUN npm install -g serve
@@ -57,12 +62,12 @@ COPY --from=backend-builder /app/server /app/server
 WORKDIR /app/server
 RUN npm ci --production
 
-# Add healthcheck
+# Add healthcheck that uses the FRONTEND_PORT env variable
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:$FRONTEND_PORT/ || exit 1
 
-# Expose ports for both frontend and backend
-EXPOSE 8080 3001
+# Expose ports for both frontend and backend (dynamic)
+EXPOSE $FRONTEND_PORT $PORT
 
 # Add start script
 COPY --from=frontend-builder /app/docker-entrypoint.sh /app/
