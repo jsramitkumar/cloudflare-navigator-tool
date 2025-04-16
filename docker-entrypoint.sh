@@ -8,6 +8,7 @@ echo "FRONTEND URL: ${FRONTEND_URL}"
 echo "BACKEND URL: ${BACKEND_URL:-http://localhost:${PORT}}"
 echo "Frontend Port: ${FRONTEND_PORT:-8080}"
 echo "Backend Port: ${PORT:-3001}"
+echo "Environment: ${NODE_ENV}"
 
 # Start the Express backend server
 cd /app/server

@@ -11,11 +11,18 @@ RUN npm ci
 # Copy the rest of the frontend code
 COPY . .
 
-# Set default URLs that can be overridden at build time
+# Set environment variables for the build
 ARG API_URL=https://api.cloudflare.com/client/v4
 ARG BACKEND_URL=http://localhost:3001
-ENV VITE_API_URL=$API_URL
-ENV VITE_BACKEND_URL=$BACKEND_URL
+ARG FRONTEND_URL=http://localhost:8080
+ARG FRONTEND_PORT=8080
+ARG BACKEND_PORT=3001
+
+ENV API_URL=$API_URL
+ENV BACKEND_URL=$BACKEND_URL
+ENV FRONTEND_URL=$FRONTEND_URL
+ENV FRONTEND_PORT=$FRONTEND_PORT
+ENV BACKEND_PORT=$BACKEND_PORT
 
 # Build the React app with environment variables
 RUN npm run build

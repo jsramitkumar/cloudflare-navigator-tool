@@ -1,3 +1,4 @@
+
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -7,11 +8,35 @@ const API_URL = process.env.API_URL || 'https://api.cloudflare.com/client/v4';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:8080';
 const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${PORT}`;
 
+// Log all environment variables for debugging
+console.log('========= SERVER ENVIRONMENT VARIABLES =========');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('PORT:', PORT);
+console.log('API_URL:', API_URL);
+console.log('FRONTEND_URL:', FRONTEND_URL);
+console.log('BACKEND_URL:', BACKEND_URL);
+console.log('FRONTEND_PORT:', process.env.FRONTEND_PORT);
+console.log('BACKEND_PORT:', process.env.BACKEND_PORT);
+console.log('===============================================');
+
 // Enable CORS for frontend with dynamic origin
 app.use(cors({
-  origin: FRONTEND_URL,
+  origin: function(origin, callback) {
+    console.log('Request origin:', origin);
+    // Allow requests with no origin (like mobile apps, curl requests)
+    if(!origin) return callback(null, true);
+    
+    // Allow FRONTEND_URL or localhost
+    if(origin === FRONTEND_URL || origin.startsWith('http://localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
+    
+    console.warn(`CORS blocked request from origin: ${origin}`);
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
+
 app.use(express.json());
 
 // Request logging middleware

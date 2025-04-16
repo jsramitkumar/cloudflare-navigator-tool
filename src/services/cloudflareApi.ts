@@ -188,12 +188,18 @@ const makeRequest = async (
   // Get the backend API URL from environment variable or use a dynamic approach
   let baseUrl;
   
+  console.log("Available environment variables:", {
+    VITE_BACKEND_URL: import.meta.env.VITE_BACKEND_URL,
+    VITE_API_URL: import.meta.env.VITE_API_URL,
+    window_location: window.location.toString()
+  });
+  
   // Check for VITE_BACKEND_URL first
-  if (import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL.trim() !== '') {
+  if (import.meta.env.VITE_BACKEND_URL && typeof import.meta.env.VITE_BACKEND_URL === 'string' && import.meta.env.VITE_BACKEND_URL.trim() !== '') {
     baseUrl = `${import.meta.env.VITE_BACKEND_URL}/api/cloudflare`;
   }
   // Then check for VITE_API_URL for backward compatibility
-  else if (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.trim() !== '') {
+  else if (import.meta.env.VITE_API_URL && typeof import.meta.env.VITE_API_URL === 'string' && import.meta.env.VITE_API_URL.trim() !== '') {
     baseUrl = import.meta.env.VITE_API_URL;
   }
   // If neither is available, try to determine the URL dynamically based on the current location
