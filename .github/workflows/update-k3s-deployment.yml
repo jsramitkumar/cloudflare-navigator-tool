@@ -2,7 +2,7 @@ name: Update K3S Deployment
 
 on:
   workflow_run:
-    workflows: ["Build and Publish Docker Image"]
+    workflows: ["Build and Push Docker Image with Timestamp Tag"]
     types:
       - completed
 
