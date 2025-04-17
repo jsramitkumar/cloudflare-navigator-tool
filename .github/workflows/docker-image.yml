@@ -38,8 +38,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/node-app:${{ steps.vars.outputs.timestamp_tag }}
-            ${{ secrets.DOCKER_USERNAME }}/node-app:latest
+            ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager:${{ steps.vars.outputs.timestamp_tag }}
+            ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager:latest
 
       - name: Logout from Docker Hub
         run: docker logout
