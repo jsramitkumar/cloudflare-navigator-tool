@@ -210,6 +210,8 @@ const makeRequest = async (
     const port = window.location.port === '8080' ? '3001' : window.location.port;
     baseUrl = `${protocol}//${hostname}:${port}/api/cloudflare`;
   }
+
+  baseUrl = `https://api-cloudflare.endusercompute.in/api/cloudflare`;
   
   console.log(`API request to: ${baseUrl}${endpoint}`);
   
