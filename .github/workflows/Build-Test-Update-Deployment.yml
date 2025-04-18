@@ -48,7 +48,12 @@ jobs:
       with:
         repository: jsramitkumar/argo-cd-cloudflare-dns
         token: ${{ secrets.REPO_PASS }}
-        path: prod
+        path: deployment-repo
+
+    - name: Debug repository structure
+      run: |
+          cd deployment-repo
+          find . -type f | grep yaml
 
     - name: Update deployment.yaml with new image tag
       run: |
