@@ -1,10 +1,11 @@
 name: Update K3S Deployment
 
 on:
-  workflow_run:
-    workflows: ["Build and Push Docker Image with Timestamp Tag"]
-    types:
-      - completed
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
 
 jobs:
   update-k3s-yaml:
@@ -28,10 +29,10 @@ jobs:
         run: |
           # Assuming you're using kustomize and updating the image in kustomization.yaml
           # Adjust the following according to your YAML structure
-          sed -i "s|image: ghcr.io/${{ github.repository }}:.*|image: ghcr.io/${{ github.repository }}:sha-${{ steps.get-version.outputs.sha_short }}|g" prod/deployment.yaml
+          #sed -i "s|image: ghcr.io/${{ github.repository }}:.*|image: ghcr.io/${{ github.repository }}:sha-${{ steps.get-version.outputs.sha_short }}|g" prod/deployment.yaml
           
           # If you're using a plain K8s manifest:
-          # sed -i "s|image: ghcr.io/${{ github.repository }}:.*|image: ghcr.io/${{ github.repository }}:sha-${{ steps.get-version.outputs.sha_short }}|g" path/to/your/deployment.yaml
+          sed -i 's|image: ghcr.io/${{ github.repository }}:.*|image: ghcr.io/${{ github.repository }}:sha-${{ steps.get-version.outputs.sha_short }}|g' prod/deployment.yaml
 
       - name: Commit and push changes
         run: |
