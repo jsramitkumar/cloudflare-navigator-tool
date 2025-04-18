@@ -3,9 +3,10 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const app = express();
+const now = new Date();
 const PORT = process.env.BACKEND_PORT || 3001;
 const API_URL = process.env.API_URL || 'https://api.cloudflare.com/client/v4';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:8080';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://cloudflare-dns.endusercompute.in';
 const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${PORT}`;
 
 // Log all environment variables for debugging
@@ -22,13 +23,15 @@ console.log('===============================================');
 // Enable CORS for frontend with dynamic origin
 app.use(cors({
   origin: function(origin, callback) {
-    console.log('Request origin:', origin);
+    const formattedUTC = `${now.getUTCFullYear()}-${(now.getUTCMonth()+1).toString().padStart(2, '0')}-${now.getUTCDate().toString().padStart(2, '0')} ` + `${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}:${now.getUTCSeconds().toString().padStart(2, '0')}`;
+    console.log(`[${formattedUTC} UTC]`,'Request origin:', origin);
     // Allow requests with no origin (like mobile apps, curl requests)
     if(!origin) return callback(null, true);
     
     // Allow FRONTEND_URL or localhost
     if(origin === FRONTEND_URL || origin.startsWith('http://localhost') || origin.includes('127.0.0.1')) {
-      console.log(`CORS allowed request from origin: ${origin}`);
+      const formattedUTC = `${now.getUTCFullYear()}-${(now.getUTCMonth()+1).toString().padStart(2, '0')}-${now.getUTCDate().toString().padStart(2, '0')} ` + `${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}:${now.getUTCSeconds().toString().padStart(2, '0')}`;
+      console.log(`[${formattedUTC} UTC]`,`CORS allowed request from origin: ${origin}`);
       return callback(null, true);
     }
     
@@ -42,8 +45,6 @@ app.use(express.json());
 
 // Request logging middleware
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-  console.log(`Request from: ${req.headers.origin || 'Unknown origin'}`);
   next();
 });
 
@@ -100,7 +101,8 @@ const callCloudflareApi = async (req, endpoint, method, data = null) => {
     fullEndpoint = endpoint;
   }
   
-  console.log(`Making ${method} request to: ${baseUrl}${fullEndpoint}`);
+  const formattedUTC = `${now.getUTCFullYear()}-${(now.getUTCMonth()+1).toString().padStart(2, '0')}-${now.getUTCDate().toString().padStart(2, '0')} ` + `${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}:${now.getUTCSeconds().toString().padStart(2, '0')}`;
+  console.log(`[${formattedUTC} UTC] Making ${method} request to: ${baseUrl}${fullEndpoint}`);
   
   try {
     // Use Global API Key authentication
@@ -140,7 +142,8 @@ app.get('/api/cloudflare/test-connection', async (req, res) => {
   try {
     // Make a simple API call to verify credentials
     const data = await callCloudflareApi(req, '/zones', 'GET');
-    console.log('Test connection successful');
+    const formattedUTC = `${now.getUTCFullYear()}-${(now.getUTCMonth()+1).toString().padStart(2, '0')}-${now.getUTCDate().toString().padStart(2, '0')} ` + `${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}:${now.getUTCSeconds().toString().padStart(2, '0')}`;
+    console.log(`[${formattedUTC} UTC]`,'Test connection successful');
     res.json({ 
       success: true, 
       message: 'Connection successful',
@@ -170,9 +173,8 @@ app.get('/api/cloudflare/test-connection', async (req, res) => {
 // DNS Records endpoints
 app.get('/api/cloudflare/dns', async (req, res) => {
   try {
-    console.log('DNS Records list request received');
+    // console.log('DNS Records list request received');
     const data = await callCloudflareApi(req, '/dns', 'GET');
-    console.log('DNS Records response received:', data.success);
     res.json(data);
   } catch (error) {
     console.error('DNS Records error:', error.message);

@@ -40,7 +40,7 @@ const Sidebar: React.FC = () => {
       <div className="p-4 border-b border-border">
         <div className="flex items-center gap-2">
           <Shield className="h-6 w-6 text-cloudflare-blue" />
-          <h1 className="text-lg font-bold">Cloudflare Navigator</h1>
+          <h1 className="text-lg font-bold">Cloudflare DNS Manager</h1>
         </div>
       </div>
       
