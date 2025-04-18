@@ -1,0 +1,69 @@
+name: Multi-Arch Build and Update Deployment
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-update:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout application code
+      uses: actions/checkout@v4
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+    - name: Generate date-based tag
+      id: datetag
+      run: |
+        # Generate tag in DDMMYY-HH-MM format
+        DATE_TAG=$(date +'%d%m%y-%H-%M')
+        echo "DATE_TAG=$DATE_TAG" >> $GITHUB_ENV
+        echo "Generated date tag: $DATE_TAG"
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: |
+          jsrankit/cloudflare-dns-manager:${{ env.DATE_TAG }}
+          jsrankit/cloudflare-dns-manager:latest
+
+    - name: Checkout deployment repository
+      uses: actions/checkout@v4
+      with:
+        repository: jsrankit/argo-cd-cloudflare-dns
+        token: ${{ secrets.DEPLOYMENT_REPO_PAT }}
+        path: /Prod
+
+    - name: Update deployment.yaml with new image tag
+      run: |
+        # Update the deployment.yaml file with the new image tag
+        cd deployment-repo
+        sed -i "s|jsrankit/cloudflare-dns-manager:[a-zA-Z0-9._-]*|jsrankit/cloudflare-dns-manager:${{ env.DATE_TAG }}|g" prod/deployment.yaml
+        
+        # Verify the update was successful
+        grep "image:" prod/deployment.yaml
+
+    - name: Commit and push changes to deployment repo
+      run: |
+        cd deployment-repo
+        git config --global user.name 'GitHub Actions Bot'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git add path/to/deployment.yaml
+        git commit -m "Update deployment.yaml with new image tag for your-image-name:${{ env.DATE_TAG }}"
+        git push
