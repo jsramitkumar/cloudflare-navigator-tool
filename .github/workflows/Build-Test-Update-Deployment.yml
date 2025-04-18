@@ -46,9 +46,9 @@ jobs:
     - name: Checkout deployment repository
       uses: actions/checkout@v4
       with:
-        repository: jsrankit/argo-cd-cloudflare-dns
+        repository: jsramitkumar/argo-cd-cloudflare-dns
         token: ${{ secrets.REPO_PASS }}
-        path: /Prod
+        path: /prod
 
     - name: Update deployment.yaml with new image tag
       run: |
