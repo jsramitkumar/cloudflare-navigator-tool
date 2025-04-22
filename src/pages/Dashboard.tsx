@@ -5,6 +5,8 @@ import { Globe, Network, Settings, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getCredentials } from '@/services/cloudflareApi';
+import Footer from '@/components/ui/footer';
+
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -94,6 +96,7 @@ const Dashboard: React.FC = () => {
           </Card>
         ))}
       </div>
+      <Footer />
     </div>
   );
 };
