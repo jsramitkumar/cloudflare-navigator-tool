@@ -44,7 +44,7 @@ const Dashboard: React.FC = () => {
   return (
     <div className="container">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Cloudflare&reg; Navigator</h1>
+        <h1 className="text-4xl font-bold mb-2">Cloudflare&reg; DNS Manager</h1>
         <p className="text-muted-foreground text-lg">
           Manage your Cloudflare&reg; DNS records and Tunnels
         </p>
