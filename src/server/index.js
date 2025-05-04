@@ -1,13 +1,12 @@
-
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const app = express();
 const now = new Date();
-const PORT = process.env.BACKEND_PORT || 3001;
+const PORT = process.env.BACKEND_PORT || 3000;
 const API_URL = process.env.API_URL || 'https://api.cloudflare.com/client/v4';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://cloudflare-dns.endusercompute.in';
-const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${PORT}`;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://localhost:3001';
+const BACKEND_URL = process.env.BACKEND_URL || `https://localhost:${PORT}`;
 
 // Log all environment variables for debugging
 console.log('========= SERVER ENVIRONMENT VARIABLES =========');
@@ -28,8 +27,13 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps, curl requests)
     if(!origin) return callback(null, true);
     
-    // Allow FRONTEND_URL or localhost
-    if(origin === FRONTEND_URL || origin.startsWith('http://localhost') || origin.includes('127.0.0.1')) {
+    // Allow FRONTEND_URL or localhost (HTTP or HTTPS)
+    if(
+      origin === FRONTEND_URL || 
+      origin.startsWith('http://localhost') || 
+      origin.startsWith('https://localhost') ||
+      origin.includes('127.0.0.1')
+    ) {
       const formattedUTC = `${now.getUTCFullYear()}-${(now.getUTCMonth()+1).toString().padStart(2, '0')}-${now.getUTCDate().toString().padStart(2, '0')} ` + `${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}:${now.getUTCSeconds().toString().padStart(2, '0')}`;
       console.log(`[${formattedUTC} UTC]`,`CORS allowed request from origin: ${origin}`);
       return callback(null, true);

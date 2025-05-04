@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { getCredentials } from '@/services/cloudflareApi';
 import Footer from '@/components/ui/footer';
 
-
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [hasCredentials, setHasCredentials] = useState(false);
@@ -51,7 +50,7 @@ const Dashboard: React.FC = () => {
       </div>
       
       {!hasCredentials && (
-        <Card className="mb-8 border-dashed border-yellow-600/30 bg-yellow-600/10">
+        <Card className="mb-8 border-dashed border-yellow-600/50 bg-yellow-50">
           <CardHeader>
             <CardTitle>Set Up Your Cloudflare API Credentials</CardTitle>
             <CardDescription>
@@ -70,7 +69,7 @@ const Dashboard: React.FC = () => {
         {cards.map((card) => (
           <Card 
             key={card.title} 
-            className={card.requiresCredentials && !hasCredentials ? "opacity-50" : ""}
+            className={card.requiresCredentials && !hasCredentials ? "opacity-50" : "shadow-md hover:shadow-lg transition-all"}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xl font-medium">{card.title}</CardTitle>
