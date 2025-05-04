@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -15,6 +14,7 @@ import {
   getActiveAccount, 
   CloudflareCredentials 
 } from '@/services/cloudflareApi';
+import { ThemeSwitcher } from '@/components/ui/theme-switcher';
 
 const Sidebar: React.FC = () => {
   const location = useLocation();
@@ -37,12 +37,15 @@ const Sidebar: React.FC = () => {
   
   return (
     <div className="w-64 h-full bg-card border-r border-border flex flex-col">
-      <div className="p-4 border-b border-border">
+      <div className="p-4 border-b border-border flex justify-between items-center">
         <div className="flex items-center gap-2">
           <Shield className="h-6 w-6 text-cloudflare-blue" />
           <h1 className="text-lg font-bold">Cloudflare&reg; DNS Manager</h1>
         </div>
+        <ThemeSwitcher />
       </div>
+      
+      
       
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
@@ -65,6 +68,8 @@ const Sidebar: React.FC = () => {
           ))}
         </ul>
       </nav>
+      
+      
       
       <div className="p-4 border-t border-border">
         {activeAccount ? (
