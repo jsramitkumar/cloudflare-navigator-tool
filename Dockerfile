@@ -13,7 +13,7 @@ COPY . .
 
 # Set environment variables for the build
 ARG API_URL=https://api.cloudflare.com/client/v4
-ARG BACKEND_URL=https://api-cloudflare.endusercompute.in
+ARG BACKEND_URL=http://localhost:3001
 ARG FRONTEND_URL=http://cloudflare-dns.endusercompute.in
 ARG FRONTEND_PORT=8080
 ARG BACKEND_PORT=3001
@@ -73,8 +73,8 @@ RUN npm ci --production
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider $FRONTEND_URL || exit 1
 
-# Expose ports for both frontend and backend
-EXPOSE $FRONTEND_PORT $BACKEND_PORT
+# Expose only the frontend port
+EXPOSE $FRONTEND_PORT
 
 # Add start script
 COPY --from=frontend-builder /app/docker-entrypoint.sh /app/
