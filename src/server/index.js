@@ -1,12 +1,13 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
+const path = require('path');
 const app = express();
 const now = new Date();
-const PORT = process.env.BACKEND_PORT || 3001;
+const PORT = process.env.PORT || 3001;
 const API_URL = process.env.API_URL || 'https://api.cloudflare.com/client/v4';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://localhost:8080';
-const BACKEND_URL = process.env.BACKEND_URL || `https://localhost:${PORT}`;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3001';
+const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${PORT}`;
 
 // Log all environment variables for debugging
 console.log('========= SERVER ENVIRONMENT VARIABLES =========');
@@ -15,8 +16,6 @@ console.log('PORT:', PORT);
 console.log('API_URL:', API_URL);
 console.log('FRONTEND_URL:', FRONTEND_URL);
 console.log('BACKEND_URL:', BACKEND_URL);
-console.log('FRONTEND_PORT:', process.env.FRONTEND_PORT);
-console.log('BACKEND_PORT:', process.env.BACKEND_PORT);
 console.log('===============================================');
 
 // Enable CORS for frontend with dynamic origin
@@ -27,25 +26,16 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps, curl requests)
     if(!origin) return callback(null, true);
     
-    // Allow FRONTEND_URL or localhost (HTTP or HTTPS)
-    if(
-      origin === FRONTEND_URL || 
-      origin.startsWith('http://localhost') || 
-      origin.startsWith('https://localhost') ||
-      origin.includes('127.0.0.1')
-    ) {
-      const formattedUTC = `${now.getUTCFullYear()}-${(now.getUTCMonth()+1).toString().padStart(2, '0')}-${now.getUTCDate().toString().padStart(2, '0')} ` + `${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}:${now.getUTCSeconds().toString().padStart(2, '0')}`;
-      console.log(`[${formattedUTC} UTC]`,`CORS allowed request from origin: ${origin}`);
-      return callback(null, true);
-    }
-    
-    console.warn(`CORS blocked request from origin: ${origin}`);
-    callback(new Error('Not allowed by CORS'));
+    // Allow any origin since we're now serving frontend and API from same origin
+    callback(null, true);
   },
   credentials: true
 }));
 
 app.use(express.json());
+
+// Serve static files from the frontend build directory
+app.use(express.static(path.join(__dirname, '..', '..', 'dist')));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -141,6 +131,7 @@ const callCloudflareApi = async (req, endpoint, method, data = null) => {
   }
 };
 
+// API Routes
 // Test connection endpoint
 app.get('/api/cloudflare/test-connection', async (req, res) => {
   try {
@@ -152,7 +143,6 @@ app.get('/api/cloudflare/test-connection', async (req, res) => {
       success: true, 
       message: 'Connection successful',
       serverInfo: {
-        backendUrl: BACKEND_URL,
         apiUrl: API_URL,
         frontendUrl: FRONTEND_URL,
         port: PORT
@@ -165,7 +155,6 @@ app.get('/api/cloudflare/test-connection', async (req, res) => {
       message: `Connection failed: ${error.message}`,
       details: error.details,
       serverInfo: {
-        backendUrl: BACKEND_URL,
         apiUrl: API_URL,
         frontendUrl: FRONTEND_URL,
         port: PORT
@@ -305,7 +294,6 @@ app.use((err, req, res, next) => {
     message: 'Internal server error',
     details: process.env.NODE_ENV === 'production' ? null : err.stack,
     serverInfo: {
-      backendUrl: BACKEND_URL,
       apiUrl: API_URL,
       frontendUrl: FRONTEND_URL,
       port: PORT
@@ -313,27 +301,16 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server BEFORE adding catch-all route
+// For any other routes not matching API endpoints, serve the React app
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', '..', 'dist', 'index.html'));
+});
+
+// Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`API URL: ${API_URL}`);
   console.log(`Frontend URL: ${FRONTEND_URL}`);
-  console.log(`Backend URL: ${BACKEND_URL}`);
-});
-
-// Add a catch-all route for unmatched routes AFTER listen
-app.use((req, res) => {
-  console.log(`404 Not Found: ${req.method} ${req.path}`);
-  res.status(404).json({ 
-    success: false, 
-    message: 'API endpoint not found',
-    serverInfo: {
-      backendUrl: BACKEND_URL,
-      apiUrl: API_URL,
-      frontendUrl: FRONTEND_URL,
-      port: PORT
-    }
-  });
 });
 
 module.exports = app;

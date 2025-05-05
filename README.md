@@ -49,23 +49,20 @@ The following environment variables can be configured during container deploymen
 | Variable | Description | Default Value | Example |
 |----------|-------------|---------------|---------|
 | `API_URL` | Cloudflare API endpoint | `https://api.cloudflare.com/client/v4` | `https://custom-api.cloudflare.com` |
-| `FRONTEND_URL` | URL where the frontend is accessible | `https://localhost:8080` | `https://cloudflare.example.com` |
-| `BACKEND_URL` | URL where the backend is accessible (local only) | `http://localhost:3001` | `http://localhost:5000` |
-| `FRONTEND_PORT` | Port exposed for the frontend | `8080` | `8443` |
-| `BACKEND_PORT` | Port used internally for backend API | `3001` | `5000` |
+| `FRONTEND_URL` | URL where the application is accessible | `http://localhost:3001` | `https://cloudflare.example.com` |
+| `PORT` | Port for the application (serves both frontend and API) | `3001` | `8080` |
 
 ### Security Note
 
-The backend API server now runs only on the local network inside the container and is not directly exposed to the host network. All communication to the backend API happens through the frontend application, which enhances security by reducing the attack surface.
+This updated version serves both the frontend and backend API on a single port, simplifying deployment and improving security by reducing the exposed network interfaces. All API endpoints are accessible under the `/api` path.
 
 ### Deployment Examples
 
 #### Basic Docker Run
 ```bash
 docker run -d \
-  -p 8080:8080 \
+  -p 3001:3001 \
   -e FRONTEND_URL=https://cloudflare.example.com \
-  -e BACKEND_URL=http://localhost:3001 \
   jsrankit/dns-cloudflare:latest
 ```
 
@@ -76,10 +73,9 @@ services:
   cloudflare-navigator:
     image: jsrankit/dns-cloudflare:latest
     ports:
-      - "8080:8080"
+      - "3001:3001"
     environment:
       - FRONTEND_URL=https://cloudflare.example.com
-      - BACKEND_URL=http://localhost:3001
       - API_URL=https://api.cloudflare.com/client/v4
     restart: always
 ```
@@ -87,19 +83,13 @@ services:
 #### Custom Port Configuration
 ```bash
 docker run -d \
-  -p 8443:8443 \
-  -e FRONTEND_PORT=8443 \
-  -e BACKEND_PORT=5000 \
+  -p 8080:8080 \
+  -e PORT=8080 \
   -e FRONTEND_URL=https://cloudflare.example.com \
-  -e BACKEND_URL=http://localhost:5000 \
   jsrankit/dns-cloudflare:latest
 ```
 
 ## Configuration
-
-### HTTPS Support
-
-The application now supports HTTPS by default for the frontend. If you need to use self-signed certificates in a development environment, make sure to accept the self-signed certificate in your browser when accessing the frontend.
 
 ### Cloudflare API Credentials
 
@@ -125,9 +115,9 @@ The application now supports HTTPS by default for the frontend. If you need to u
 
 ## Troubleshooting
 
-- Check if your frontend URL is configured correctly in the environment variables
-- Verify network connectivity between frontend and Cloudflare API
-- Ensure Docker container has proper port mapping for frontend
+- Check if your application URL is configured correctly in the environment variables
+- Verify network connectivity to Cloudflare API
+- Ensure Docker container has proper port mapping
 - Validate API credentials in the application settings
 - Check logs using `docker logs [container_name]`
 
