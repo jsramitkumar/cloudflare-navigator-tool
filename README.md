@@ -49,18 +49,18 @@ The following environment variables can be configured during container deploymen
 | Variable | Description | Default Value | Example |
 |----------|-------------|---------------|---------|
 | `API_URL` | Cloudflare API endpoint | `https://api.cloudflare.com/client/v4` | `https://custom-api.cloudflare.com` |
-| `FRONTEND_URL` | URL where the frontend is accessible | `https://localhost:3001` | `https://cloudflare.example.com` |
-| `BACKEND_URL` | URL where the backend is accessible | `https://localhost:3000` | `https://api.example.com` |
-| `FRONTEND_PORT` | Port exposed for the frontend | `3001` | `8443` |
-| `BACKEND_PORT` | Port exposed for the backend API | `3000` | `5000` |
+| `FRONTEND_URL` | URL where the frontend is accessible | `https://localhost:8080` | `https://cloudflare.example.com` |
+| `BACKEND_URL` | URL where the backend is accessible | `https://localhost:3001` | `https://api.example.com` |
+| `FRONTEND_PORT` | Port exposed for the frontend | `8080` | `8443` |
+| `BACKEND_PORT` | Port exposed for the backend API | `3001` | `5000` |
 
 ### Deployment Examples
 
 #### Basic Docker Run
 ```bash
 docker run -d \
+  -p 8080:8080 \
   -p 3001:3001 \
-  -p 3000:3000 \
   -e FRONTEND_URL=https://cloudflare.example.com \
   -e BACKEND_URL=https://api.example.com \
   jsrankit/dns-cloudflare:latest
@@ -73,8 +73,8 @@ services:
   cloudflare-navigator:
     image: jsrankit/dns-cloudflare:latest
     ports:
+      - "8080:8080"
       - "3001:3001"
-      - "3000:3000"
     environment:
       - FRONTEND_URL=https://cloudflare.example.com
       - BACKEND_URL=https://api.example.com

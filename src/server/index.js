@@ -3,9 +3,9 @@ const cors = require('cors');
 const axios = require('axios');
 const app = express();
 const now = new Date();
-const PORT = process.env.BACKEND_PORT || 3000;
+const PORT = process.env.BACKEND_PORT || 3001;
 const API_URL = process.env.API_URL || 'https://api.cloudflare.com/client/v4';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://localhost:3001';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://localhost:8080';
 const BACKEND_URL = process.env.BACKEND_URL || `https://localhost:${PORT}`;
 
 // Log all environment variables for debugging

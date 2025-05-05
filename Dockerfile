@@ -13,10 +13,10 @@ COPY . .
 
 # Set environment variables for the build
 ARG API_URL=https://api.cloudflare.com/client/v4
-ARG BACKEND_URL=http://localhost:3000
-ARG FRONTEND_URL=http://localhost:3001
-ARG FRONTEND_PORT=3001
-ARG BACKEND_PORT=3000
+ARG BACKEND_URL=http://localhost:3001
+ARG FRONTEND_URL=http://localhost:8080
+ARG FRONTEND_PORT=8080
+ARG BACKEND_PORT=3001
 
 ENV API_URL=$API_URL
 ENV BACKEND_URL=$BACKEND_URL
@@ -44,12 +44,12 @@ FROM node:20-alpine
 
 # Set environment variables with defaults that can be overridden
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=3001
 ENV API_URL=https://api.cloudflare.com/client/v4
-ENV FRONTEND_URL=https://localhost:3001
-ENV BACKEND_URL=https://localhost:3000
-ENV FRONTEND_PORT=3001
-ENV BACKEND_PORT=3000
+ENV FRONTEND_URL=https://localhost:8080
+ENV BACKEND_URL=https://localhost:3001
+ENV FRONTEND_PORT=8080
+ENV BACKEND_PORT=3001
 
 # Install serve for frontend static serving
 RUN npm install -g serve
