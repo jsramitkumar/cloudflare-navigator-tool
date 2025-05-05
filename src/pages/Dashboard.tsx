@@ -50,15 +50,22 @@ const Dashboard: React.FC = () => {
       </div>
       
       {!hasCredentials && (
-        <Card className="mb-8 border-dashed border-yellow-600/50 bg-yellow-50">
+        <Card className="mb-8 border-dashed border-cloudflare-orange/50 bg-yellow-50 dark:bg-amber-900/10 dark:border-cloudflare-orange/30">
           <CardHeader>
-            <CardTitle>Set Up Your Cloudflare API Credentials</CardTitle>
-            <CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-cloudflare-orange" />
+              Configure API Credentials
+            </CardTitle>
+            <CardDescription className="text-base">
               You need to configure your Cloudflare API credentials to get started.
             </CardDescription>
           </CardHeader>
           <CardFooter>
-            <Button onClick={() => navigate('/settings')}>
+            <Button 
+              onClick={() => navigate('/settings')}
+              className="bg-cloudflare-blue hover:bg-cloudflare-blue/90"
+            >
+              <Settings className="mr-2 h-4 w-4" />
               Configure Settings
             </Button>
           </CardFooter>
@@ -69,11 +76,12 @@ const Dashboard: React.FC = () => {
         {cards.map((card) => (
           <Card 
             key={card.title} 
-            className={card.requiresCredentials && !hasCredentials ? "opacity-50" : "shadow-md hover:shadow-lg transition-all"}
+            className={`${card.requiresCredentials && !hasCredentials ? "opacity-50" : "shadow-md hover:shadow-lg transition-all"} 
+              hover:border-cloudflare-blue/50`}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xl font-medium">{card.title}</CardTitle>
-              <card.icon className="h-6 w-6 text-primary" />
+              <card.icon className="h-6 w-6 text-cloudflare-blue" />
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">{card.description}</p>
@@ -82,13 +90,15 @@ const Dashboard: React.FC = () => {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="flex items-center gap-1 hover:gap-2 transition-all"
+                className="flex items-center gap-1 hover:gap-2 transition-all group"
                 onClick={() => navigate(card.path)}
                 disabled={card.requiresCredentials && !hasCredentials}
               >
-                {card.requiresCredentials && !hasCredentials ? "Credentials Required" : "Manage"}
+                <span className="text-cloudflare-blue group-hover:text-cloudflare-blue/90">
+                  {card.requiresCredentials && !hasCredentials ? "Credentials Required" : "Manage"}
+                </span>
                 {!(card.requiresCredentials && !hasCredentials) && (
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-4 w-4 text-cloudflare-blue group-hover:text-cloudflare-blue/90" />
                 )}
               </Button>
             </CardFooter>
