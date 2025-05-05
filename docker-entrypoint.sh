@@ -16,7 +16,7 @@ node index.js &
 
 # Serve the frontend using a simple HTTP server
 cd /app
-npx serve -s dist -l ${FRONTEND_PORT:-8080} --ssl
+npx serve -s dist -l ${FRONTEND_PORT:-8080}
 
 # Keep the container running
 wait
