@@ -13,8 +13,8 @@ COPY . .
 
 # Set environment variables for the build
 ARG API_URL=https://api.cloudflare.com/client/v4
-ARG BACKEND_URL=/api
-ARG FRONTEND_URL=http://cloudflare-dns.endusercompute.in
+ARG BACKEND_URL=http://localhost:3001/api
+ARG FRONTEND_URL=http://localhost:8080
 ARG PORT=3001
 
 ENV API_URL=$API_URL
@@ -44,8 +44,8 @@ FROM node:20-alpine
 ENV NODE_ENV=production
 ENV PORT=3001
 ENV API_URL=https://api.cloudflare.com/client/v4
-ENV FRONTEND_URL=http://localhost:3001
-ENV BACKEND_URL=/api
+ENV FRONTEND_URL=http://localhost:8080
+ENV BACKEND_URL=http://localhost:3001/api
 
 WORKDIR /app
 
@@ -64,9 +64,9 @@ RUN npm ci --production
 
 # Add healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:$PORT || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:$PORT/api/cloudflare/test-connection || exit 1
 
-# Expose single port
+# Expose backend port
 EXPOSE $PORT
 
 # Add start script

@@ -2,24 +2,37 @@
 version: '3.8'
 
 services:
-  cloudflare-navigator:
+  cloudflare-navigator-backend:
     image: jsrankit/dns-cloudflare:latest
-    container_name: ENDUSERCOMPUTE_FE_CLOUDFLARE
+    container_name: ENDUSERCOMPUTE_BE_CLOUDFLARE
     ports:
-      - "${PORT:-3001}:${PORT:-3001}"  # Single port for both frontend and API
+      - "${PORT:-3001}:${PORT:-3001}"  # Expose backend API port
     restart: always
     environment:
       - NODE_ENV=production
       - API_URL=${API_URL:-https://api.cloudflare.com/client/v4}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3001}
-      - BACKEND_URL=/api
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:8080}
+      - BACKEND_URL=${BACKEND_URL:-http://localhost:3001}
       - PORT=${PORT:-3001}
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${PORT:-3001}/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${PORT:-3001}/api/cloudflare/test-connection"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 5s
+    networks:
+      - cloudflare_net
+  
+  cloudflare-navigator-frontend:
+    image: nginx:stable-alpine
+    container_name: ENDUSERCOMPUTE_FE_CLOUDFLARE
+    ports:
+      - "8080:80"  # Expose frontend port
+    volumes:
+      - ./dist:/usr/share/nginx/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - cloudflare-navigator-backend
     networks:
       - cloudflare_net
 

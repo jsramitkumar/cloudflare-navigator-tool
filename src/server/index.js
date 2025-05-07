@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -7,7 +6,7 @@ const app = express();
 const now = new Date();
 const PORT = process.env.PORT || 3001;
 const API_URL = process.env.API_URL || 'https://api.cloudflare.com/client/v4';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3001';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:8080';
 const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${PORT}`;
 
 // Log all environment variables for debugging
@@ -24,10 +23,14 @@ app.use(cors({
   origin: function(origin, callback) {
     const formattedUTC = `${now.getUTCFullYear()}-${(now.getUTCMonth()+1).toString().padStart(2, '0')}-${now.getUTCDate().toString().padStart(2, '0')} ` + `${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}:${now.getUTCSeconds().toString().padStart(2, '0')}`;
     console.log(`[${formattedUTC} UTC]`,'Request origin:', origin);
+    
     // Allow requests with no origin (like mobile apps, curl requests)
     if(!origin) return callback(null, true);
     
-    // Allow any origin since we're now serving frontend and API from same origin
+    // Allow requests from the frontend URL
+    if(origin === FRONTEND_URL) return callback(null, true);
+    
+    // Allow requests from other allowed origins
     callback(null, true);
   },
   credentials: true
@@ -303,15 +306,16 @@ app.use((err, req, res, next) => {
 });
 
 // For any other routes not matching API endpoints, serve the React app
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', '..', 'dist', 'index.html'));
-});
+// app.get('*', (req, res) => {
+//   res.sendFile(path.join(__dirname, '..', '..', 'dist', 'index.html'));
+// });
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Backend server running on port ${PORT}`);
   console.log(`API URL: ${API_URL}`);
   console.log(`Frontend URL: ${FRONTEND_URL}`);
+  console.log(`Backend URL: ${BACKEND_URL}`);
 });
 
 module.exports = app;

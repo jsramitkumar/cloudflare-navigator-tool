@@ -49,43 +49,50 @@ The following environment variables can be configured during container deploymen
 | Variable | Description | Default Value | Example |
 |----------|-------------|---------------|---------|
 | `API_URL` | Cloudflare API endpoint | `https://api.cloudflare.com/client/v4` | `https://custom-api.cloudflare.com` |
-| `FRONTEND_URL` | URL where the application is accessible | `http://localhost:3001` | `https://cloudflare.example.com` |
-| `PORT` | Port for the application (serves both frontend and API) | `3001` | `8080` |
+| `FRONTEND_URL` | URL where the frontend is accessible | `http://localhost:8080` | `https://cloudflare.example.com` |
+| `BACKEND_URL` | URL where the backend API is accessible | `http://localhost:3001` | `https://api.cloudflare.example.com` |
+| `PORT` | Port for the backend API | `3001` | `8080` |
 
 ### Security Note
 
-This updated version serves both the frontend and backend API on a single port, simplifying deployment and improving security by reducing the exposed network interfaces. All API endpoints are accessible under the `/api` path.
+The application is now configured to run the frontend and backend on separate ports:
+- Frontend runs on port 8080
+- Backend API runs on port 3001
+- All API endpoints are accessible under the `/api` path
 
 ### Deployment Examples
 
-#### Basic Docker Run
-```bash
-docker run -d \
-  -p 3001:3001 \
-  -e FRONTEND_URL=https://cloudflare.example.com \
-  jsrankit/dns-cloudflare:latest
-```
-
-#### Docker Compose Example
+#### Basic Docker Compose
 ```yaml
 version: '3.8'
 services:
-  cloudflare-navigator:
+  cloudflare-navigator-backend:
     image: jsrankit/dns-cloudflare:latest
     ports:
       - "3001:3001"
     environment:
-      - FRONTEND_URL=https://cloudflare.example.com
+      - FRONTEND_URL=http://localhost:8080
       - API_URL=https://api.cloudflare.com/client/v4
     restart: always
+  
+  cloudflare-navigator-frontend:
+    image: nginx:stable-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./dist:/usr/share/nginx/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - cloudflare-navigator-backend
 ```
 
 #### Custom Port Configuration
 ```bash
 docker run -d \
-  -p 8080:8080 \
-  -e PORT=8080 \
+  -p 8081:3001 \
+  -e PORT=3001 \
   -e FRONTEND_URL=https://cloudflare.example.com \
+  -e BACKEND_URL=https://api.cloudflare.example.com \
   jsrankit/dns-cloudflare:latest
 ```
 
@@ -115,9 +122,9 @@ docker run -d \
 
 ## Troubleshooting
 
-- Check if your application URL is configured correctly in the environment variables
+- Check if your application URLs are configured correctly in the environment variables
 - Verify network connectivity to Cloudflare API
-- Ensure Docker container has proper port mapping
+- Ensure Docker containers have proper port mapping
 - Validate API credentials in the application settings
 - Check logs using `docker logs [container_name]`
 
