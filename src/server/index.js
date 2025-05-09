@@ -6,40 +6,21 @@ const app = express();
 const now = new Date();
 const PORT = process.env.PORT || 3001;
 const API_URL = process.env.API_URL || 'https://api.cloudflare.com/client/v4';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:8080';
-const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${PORT}`;
 
 // Log all environment variables for debugging
 console.log('========= SERVER ENVIRONMENT VARIABLES =========');
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('PORT:', PORT);
 console.log('API_URL:', API_URL);
-console.log('FRONTEND_URL:', FRONTEND_URL);
-console.log('BACKEND_URL:', BACKEND_URL);
 console.log('===============================================');
 
-// Enable CORS for frontend with dynamic origin
+// Enable CORS for all origins
 app.use(cors({
-  origin: function(origin, callback) {
-    const formattedUTC = `${now.getUTCFullYear()}-${(now.getUTCMonth()+1).toString().padStart(2, '0')}-${now.getUTCDate().toString().padStart(2, '0')} ` + `${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}:${now.getUTCSeconds().toString().padStart(2, '0')}`;
-    console.log(`[${formattedUTC} UTC]`,'Request origin:', origin);
-    
-    // Allow requests with no origin (like mobile apps, curl requests)
-    if(!origin) return callback(null, true);
-    
-    // Allow requests from the frontend URL
-    if(origin === FRONTEND_URL) return callback(null, true);
-    
-    // Allow requests from other allowed origins
-    callback(null, true);
-  },
+  origin: '*',  // Allow all origins
   credentials: true
 }));
 
 app.use(express.json());
-
-// Serve static files from the frontend build directory
-app.use(express.static(path.join(__dirname, '..', '..', 'dist')));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -148,7 +129,6 @@ app.get('/api/cloudflare/test-connection', async (req, res) => {
       message: 'Connection successful',
       serverInfo: {
         apiUrl: API_URL,
-        frontendUrl: FRONTEND_URL,
         port: PORT
       }
     });
@@ -160,7 +140,6 @@ app.get('/api/cloudflare/test-connection', async (req, res) => {
       details: error.details,
       serverInfo: {
         apiUrl: API_URL,
-        frontendUrl: FRONTEND_URL,
         port: PORT
       }
     });
@@ -299,23 +278,15 @@ app.use((err, req, res, next) => {
     details: process.env.NODE_ENV === 'production' ? null : err.stack,
     serverInfo: {
       apiUrl: API_URL,
-      frontendUrl: FRONTEND_URL,
       port: PORT
     }
   });
 });
 
-// For any other routes not matching API endpoints, serve the React app
-// app.get('*', (req, res) => {
-//   res.sendFile(path.join(__dirname, '..', '..', 'dist', 'index.html'));
-// });
-
 // Start server
 app.listen(PORT, () => {
   console.log(`Backend server running on port ${PORT}`);
   console.log(`API URL: ${API_URL}`);
-  console.log(`Frontend URL: ${FRONTEND_URL}`);
-  console.log(`Backend URL: ${BACKEND_URL}`);
 });
 
 module.exports = app;

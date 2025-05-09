@@ -6,8 +6,8 @@ export const getApiBaseUrl = () => {
     return '/api';
   }
 
-  // In production, use the BACKEND_URL environment variable or default
-  return process.env.BACKEND_URL || 'http://localhost:3001/api';
+  // In production, use the hardcoded path
+  return '/api';
 };
 
 // Default headers for API requests
