@@ -5,12 +5,14 @@ const path = require('path');
 const app = express();
 const now = new Date();
 const PORT = process.env.PORT || 3001;
+const HOST = process.env.HOST || '0.0.0.0';
 const API_URL = process.env.API_URL || 'https://api.cloudflare.com/client/v4';
 
 // Log all environment variables for debugging
 console.log('========= SERVER ENVIRONMENT VARIABLES =========');
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('PORT:', PORT);
+console.log('HOST:', HOST);
 console.log('API_URL:', API_URL);
 console.log('===============================================');
 
@@ -278,14 +280,15 @@ app.use((err, req, res, next) => {
     details: process.env.NODE_ENV === 'production' ? null : err.stack,
     serverInfo: {
       apiUrl: API_URL,
-      port: PORT
+      port: PORT,
+      host: HOST
     }
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Backend server running on port ${PORT}`);
+// Start server listening on all interfaces
+app.listen(PORT, HOST, () => {
+  console.log(`Backend server running on ${HOST}:${PORT}`);
   console.log(`API URL: ${API_URL}`);
 });
 

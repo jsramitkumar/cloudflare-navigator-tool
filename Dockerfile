@@ -6,6 +6,7 @@ FROM node:20-alpine
 ENV NODE_ENV=production
 ENV PORT=3001
 ENV API_URL=https://api.cloudflare.com/client/v4
+ENV HOST=0.0.0.0
 
 WORKDIR /app
 

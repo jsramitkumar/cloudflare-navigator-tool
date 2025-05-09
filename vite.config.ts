@@ -17,13 +17,18 @@ export default defineConfig(({ mode }) => ({
   },
   server: {
     port: 8080,
-    host: "::",
+    host: "0.0.0.0",
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,
       }
     },
+    cors: true
+  },
+  preview: {
+    port: 8080,
+    host: "0.0.0.0",
     cors: true
   }
 }));

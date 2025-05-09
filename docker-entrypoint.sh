@@ -11,5 +11,4 @@ echo "Environment: ${NODE_ENV}"
 cd /app/server
 node index.js
 
-# Wait to keep container running (shouldn't reach here as node should block)
-wait
+# The container will keep running as long as the node process is active

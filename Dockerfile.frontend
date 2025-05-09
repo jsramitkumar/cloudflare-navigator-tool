@@ -13,8 +13,12 @@ COPY . .
 # Build the React app
 RUN npm run build
 
+# Make sure vite.config.ts settings are applied
+ENV HOST=0.0.0.0
+ENV PORT=8080
+
 # Expose frontend port
 EXPOSE 8080
 
-# Start frontend using vite preview
-CMD ["npm", "run", "preview", "--", "--port", "8080", "--host"]
+# Start frontend using vite preview with explicit host binding
+CMD ["npm", "run", "preview", "--", "--port", "8080", "--host", "0.0.0.0"]
