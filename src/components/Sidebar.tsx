@@ -8,7 +8,8 @@ import {
   Network, 
   Settings, 
   LogOut,
-  Users
+  Users,
+  Cloud
 } from 'lucide-react';
 import { 
   getActiveAccount, 
@@ -38,7 +39,8 @@ const Sidebar: React.FC = () => {
   return (
     <div className="w-64 h-full bg-card border-r border-border flex flex-col">
       <div className="p-4 border-b border-border flex justify-between items-center">
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
+          <Cloud className="h-6 w-6 text-primary" />
           <h1 className="text-lg font-bold">Cloudflare DNS Manager</h1>
         </div>
         <ThemeSwitcher />
