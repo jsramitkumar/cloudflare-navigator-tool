@@ -17,12 +17,16 @@ Cloudflare Navigator is a powerful web application that allows you to manage you
 - **Secure Credential Storage**: 
   - Local storage of Cloudflare API credentials
   - Test and validate credentials before saving
+- **Configurable Backend URL**: 
+  - Set custom backend API URL from the settings page
+  - Test connection to ensure backend is reachable
 
 ## Prerequisites
 
-- Node.js (version 18 or higher)
+- Node.js (version 20 or higher)
 - npm or Bun
 - Docker (for containerized deployment)
+- Docker Compose (for multi-container deployment)
 - A Cloudflare account with API access
 
 ## Network Requirements
@@ -38,63 +42,73 @@ Cloudflare Navigator is a powerful web application that allows you to manage you
 - Ensure your network allows outbound HTTPS connections
 - Whitelist domains if using strict network policies
 
-## Docker Deployment
+## Docker Deployment Options
 
-You can deploy Cloudflare Navigator using Docker with extensive customization options.
+This application can be deployed in several ways using Docker:
+
+### 1. Separated Frontend and Backend Deployment
+
+Deploy frontend and backend separately, ideal for distributed architectures:
+
+#### Frontend Deployment
+```bash
+# Build the frontend image
+docker build -t cloudflare-navigator-frontend:latest -f Dockerfile.frontend .
+
+# Run the frontend container
+docker run -d -p 8080:8080 -e API_URL=http://your-backend-url:3001/api cloudflare-navigator-frontend:latest
+```
+
+#### Backend Deployment
+```bash
+# Build the backend image
+docker build -t cloudflare-navigator-backend:latest -f Dockerfile .
+
+# Run the backend container
+docker run -d -p 3001:3001 -e API_URL=https://api.cloudflare.com/client/v4 cloudflare-navigator-backend:latest
+```
+
+### 2. Docker Compose Deployment
+
+#### Frontend Only
+```bash
+docker-compose -f frontend-docker-compose.yml up -d
+```
+
+#### Backend Only
+```bash
+docker-compose -f backend-docker-compose.yml up -d
+```
+
+#### Combined Deployment
+```bash
+docker-compose -f combined-docker-compose.yml up -d
+```
 
 ### Environment Variables for Container Configuration
 
 The following environment variables can be configured during container deployment:
 
+#### Backend Environment Variables
 | Variable | Description | Default Value | Example |
 |----------|-------------|---------------|---------|
 | `API_URL` | Cloudflare API endpoint | `https://api.cloudflare.com/client/v4` | `https://custom-api.cloudflare.com` |
-| `FRONTEND_URL` | URL where the frontend is accessible | `http://localhost:8080` | `https://cloudflare.example.com` |
-| `BACKEND_URL` | URL where the backend API is accessible | `http://localhost:3001` | `https://api.cloudflare.example.com` |
 | `PORT` | Port for the backend API | `3001` | `8080` |
+| `NODE_ENV` | Node.js environment | `production` | `development` |
+| `HOST` | Hostname to bind to | `0.0.0.0` | `localhost` |
 
-### Security Note
+#### Frontend Environment Variables
+| Variable | Description | Default Value | Example |
+|----------|-------------|---------------|---------|
+| `API_URL` | Backend API URL | `/api` | `http://backend-service:3001/api` |
 
-The application is now configured to run the frontend and backend on separate ports:
-- Frontend runs on port 8080
-- Backend API runs on port 3001
-- All API endpoints are accessible under the `/api` path
-
-### Deployment Examples
-
-#### Basic Docker Compose
-```yaml
-version: '3.8'
-services:
-  cloudflare-navigator-backend:
-    image: jsrankit/dns-cloudflare:latest
-    ports:
-      - "3001:3001"
-    environment:
-      - FRONTEND_URL=http://localhost:8080
-      - API_URL=https://api.cloudflare.com/client/v4
-    restart: always
-  
-  cloudflare-navigator-frontend:
-    image: nginx:stable-alpine
-    ports:
-      - "8080:80"
-    volumes:
-      - ./dist:/usr/share/nginx/html
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
-    depends_on:
-      - cloudflare-navigator-backend
-```
-
-#### Custom Port Configuration
-```bash
-docker run -d \
-  -p 8081:3001 \
-  -e PORT=3001 \
-  -e FRONTEND_URL=https://cloudflare.example.com \
-  -e BACKEND_URL=https://api.cloudflare.example.com \
-  jsrankit/dns-cloudflare:latest
-```
+#### Combined Deployment Environment Variables
+| Variable | Description | Default Value | Example |
+|----------|-------------|---------------|---------|
+| `BACKEND_IMAGE` | Backend Docker image | `jsrankit/cloudflare-dns-backend:latest` | `myregistry/backend:v1.0` |
+| `FRONTEND_IMAGE` | Frontend Docker image | `jsrankit/cloudflare-dns-frontend:latest` | `myregistry/frontend:v1.0` |
+| `BACKEND_URL` | URL for frontend to reach backend | `http://cloudflare-navigator-backend:3001/api` | `https://api.example.com` |
+| `PORT` | Backend port | `3001` | `8080` |
 
 ## Configuration
 
@@ -109,16 +123,28 @@ docker run -d \
    - Account ID
    - Zone ID
 
-## Project Technologies
+### Backend API URL Configuration
 
-- React 18
-- TypeScript
-- Vite
-- Tailwind CSS
-- Shadcn UI
-- React Hook Form
-- Zod (form validation)
-- Tanstack React Query
+1. Navigate to the Settings page
+2. In the "Backend API Configuration" section:
+   - Enter the full URL to your backend API (e.g., `http://localhost:3001/api`)
+   - Click "Save and Test Connection" to verify connectivity
+
+## Project Structure
+
+```
+├── Dockerfile            # Backend Dockerfile
+├── Dockerfile.frontend   # Frontend Dockerfile
+├── docker-compose.yml    # Combined deployment configuration
+├── frontend-docker-compose.yml # Frontend-only deployment
+├── backend-docker-compose.yml  # Backend-only deployment
+├── nginx.conf            # Nginx configuration for frontend
+├── src/
+│   ├── components/       # React components
+│   ├── pages/            # Application pages
+│   ├── services/         # API services
+│   └── server/           # Backend Express server
+```
 
 ## Troubleshooting
 
@@ -127,6 +153,7 @@ docker run -d \
 - Ensure Docker containers have proper port mapping
 - Validate API credentials in the application settings
 - Check logs using `docker logs [container_name]`
+- Test backend connectivity in the Settings page
 
 ## License
 

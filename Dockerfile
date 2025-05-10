@@ -1,5 +1,4 @@
 
-# Use Node.js as the base image
 FROM node:20-alpine
 
 # Set environment variables with defaults
