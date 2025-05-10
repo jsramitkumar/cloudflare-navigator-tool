@@ -28,8 +28,9 @@ services:
     ports:
       - "8080:8080"  # Expose frontend port
     environment:
-      - HOST=0.0.0.0
-      - PORT=8080
+      - API_URL=${BACKEND_URL:-http://cloudflare-navigator-backend:3001/api}
+    depends_on:
+      - cloudflare-navigator-backend
     networks:
       - cloudflare_net
 

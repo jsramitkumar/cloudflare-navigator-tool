@@ -34,6 +34,11 @@ import {
   testCredentials,
   CloudflareCredentials
 } from '@/services/cloudflareApi';
+import { 
+  getCurrentApiUrl, 
+  saveApiUrl, 
+  testBackendConnection 
+} from '@/services/apiConfig';
 import AccountSelector from '@/components/AccountSelector';
 
 const formSchema = z.object({
@@ -44,11 +49,17 @@ const formSchema = z.object({
   zoneId: z.string().min(1, 'Zone ID is required'),
 });
 
+const apiUrlFormSchema = z.object({
+  apiUrl: z.string().url('Must be a valid URL'),
+});
+
 type FormValues = z.infer<typeof formSchema>;
+type ApiUrlFormValues = z.infer<typeof apiUrlFormSchema>;
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [isTestingBackend, setIsTestingBackend] = useState(false);
   const [accounts, setAccounts] = useState<CloudflareCredentials[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [currentAccountId, setCurrentAccountId] = useState<string | null>(null);
@@ -61,6 +72,13 @@ const Settings: React.FC = () => {
       email: '',
       accountId: '',
       zoneId: '',
+    },
+  });
+  
+  const apiUrlForm = useForm<ApiUrlFormValues>({
+    resolver: zodResolver(apiUrlFormSchema),
+    defaultValues: {
+      apiUrl: getCurrentApiUrl(),
     },
   });
   
@@ -206,10 +224,79 @@ const Settings: React.FC = () => {
       zoneId: '',
     });
   };
+
+  const onApiUrlSubmit = async (data: ApiUrlFormValues) => {
+    setIsTestingBackend(true);
+    try {
+      // Test connection to backend
+      const isConnected = await testBackendConnection(data.apiUrl);
+      
+      if (isConnected) {
+        // Save API URL to localStorage
+        saveApiUrl(data.apiUrl);
+        
+        toast({
+          title: "Backend URL updated",
+          description: "Connection to backend successful. URL has been saved.",
+        });
+      } else {
+        toast({
+          title: "Connection failed",
+          description: "Failed to connect to backend. Please check the URL.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Connection failed",
+        description: "Failed to connect to backend. Please check the URL.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTestingBackend(false);
+    }
+  };
   
   return (
     <div className="container max-w-2xl">
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Backend API Configuration</CardTitle>
+          <CardDescription>
+            Configure the URL for the backend API server.
+          </CardDescription>
+        </CardHeader>
+        <Form {...apiUrlForm}>
+          <form onSubmit={apiUrlForm.handleSubmit(onApiUrlSubmit)}>
+            <CardContent>
+              <FormField
+                control={apiUrlForm.control}
+                name="apiUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Backend API URL</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="text" 
+                        placeholder="http://localhost:3001/api" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+            <CardFooter className="flex justify-end">
+              <Button type="submit" disabled={isTestingBackend}>
+                {isTestingBackend ? 'Testing connection...' : 'Save and Test Connection'}
+              </Button>
+            </CardFooter>
+          </form>
+        </Form>
+      </Card>
       
       {accounts.length > 0 && (
         <Card className="mb-6">

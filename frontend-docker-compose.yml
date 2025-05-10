@@ -5,13 +5,12 @@ services:
   cloudflare-navigator-frontend:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.frontend
     container_name: ENDUSERCOMPUTE_FE_CLOUDFLARE
     ports:
       - "8080:8080"  # Expose frontend port
     environment:
-      - HOST=0.0.0.0
-      - PORT=8080
+      - API_URL=${API_URL:-/api}
     networks:
       - cloudflare_net
 
