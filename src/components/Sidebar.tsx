@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -7,7 +8,6 @@ import {
   Network, 
   Settings, 
   LogOut,
-  Shield,
   Users
 } from 'lucide-react';
 import { 
@@ -38,9 +38,8 @@ const Sidebar: React.FC = () => {
   return (
     <div className="w-64 h-full bg-card border-r border-border flex flex-col">
       <div className="p-4 border-b border-border flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <Shield className="h-6 w-6 text-cloudflare-blue" />
-          <h1 className="text-lg font-bold">Cloudflare&reg; DNS Manager</h1>
+        <div className="flex items-center">
+          <h1 className="text-lg font-bold">Cloudflare DNS Manager</h1>
         </div>
         <ThemeSwitcher />
       </div>
