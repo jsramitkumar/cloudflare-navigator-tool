@@ -123,7 +123,7 @@ const callCloudflareApi = async (req, endpoint, method, data = null) => {
 app.get('/api/cloudflare/test-connection', async (req, res) => {
   try {
     // Make a simple API call to verify credentials
-    const data = await callCloudflareApi(req, '/zones', 'GET');
+    //const data = await callCloudflareApi(req, '/zones', 'GET');
     const formattedUTC = `${now.getUTCFullYear()}-${(now.getUTCMonth()+1).toString().padStart(2, '0')}-${now.getUTCDate().toString().padStart(2, '0')} ` + `${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}:${now.getUTCSeconds().toString().padStart(2, '0')}`;
     console.log(`[${formattedUTC} UTC]`,'Test connection successful');
     res.json({ 
