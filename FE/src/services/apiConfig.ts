@@ -41,7 +41,11 @@ export const getCurrentApiUrl = (): string => {
 export const testBackendConnection = async (url: string): Promise<boolean> => {
   try {
     const response = await fetch(`${url}/cloudflare/test-connection`);
-    return response.ok;
+    if (!response.ok) {
+      return false;
+    }
+    const data = await response.json();
+    return data.success === true;
   } catch (error) {
     console.error('Failed to connect to backend:', error);
     return false;

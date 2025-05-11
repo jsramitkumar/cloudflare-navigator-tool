@@ -129,6 +129,8 @@ The following environment variables can be configured during container deploymen
 2. In the "Backend API Configuration" section:
    - Enter the full URL to your backend API (e.g., `http://localhost:3001/api`)
    - Click "Save and Test Connection" to verify connectivity
+   - **Important**: The URL must include the full path to the API without the `/cloudflare` suffix
+   - Example: If your backend is at `http://backend-server:3001`, use `http://backend-server:3001/api`
 
 ## Project Structure
 
@@ -148,12 +150,19 @@ The following environment variables can be configured during container deploymen
 
 ## Troubleshooting
 
-- Check if your application URLs are configured correctly in the environment variables
-- Verify network connectivity to Cloudflare API
-- Ensure Docker containers have proper port mapping
-- Validate API credentials in the application settings
-- Check logs using `docker logs [container_name]`
-- Test backend connectivity in the Settings page
+- **Custom API URL Issues**: 
+  - Ensure the URL entered in Settings includes `/api` but NOT `/cloudflare`
+  - Example correct format: `http://your-backend:3001/api`
+  - After saving, test the connection using the "Save and Test Connection" button
+  - If connection fails, check backend logs and network connectivity
+
+- **General Issues**:
+  - Check if your application URLs are configured correctly in the environment variables
+  - Verify network connectivity to Cloudflare API
+  - Ensure Docker containers have proper port mapping
+  - Validate API credentials in the application settings
+  - Check logs using `docker logs [container_name]`
+  - Test backend connectivity in the Settings page
 
 ## License
 

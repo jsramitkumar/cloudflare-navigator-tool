@@ -1,4 +1,6 @@
+
 import { toast } from "@/components/ui/use-toast";
+import { getApiBaseUrl, getDefaultHeaders } from "./apiConfig";
 
 // Define types for Cloudflare DNS records
 export interface DnsRecord {
@@ -185,46 +187,15 @@ const makeRequest = async (
     throw new Error('No Cloudflare credentials found. Please set your API credentials first.');
   }
   
-  // Get the backend API URL from environment variable or use a dynamic approach
-  let baseUrl;
-  
-  console.log("Available environment variables:", {
-    VITE_BACKEND_URL: import.meta.env.VITE_BACKEND_URL,
-    VITE_API_URL: import.meta.env.VITE_API_URL,
-    window_location: window.location.toString()
-  });
-  
-  // Check for VITE_BACKEND_URL first
-  if (import.meta.env.VITE_BACKEND_URL && typeof import.meta.env.VITE_BACKEND_URL === 'string' && import.meta.env.VITE_BACKEND_URL.trim() !== '') {
-    baseUrl = `${import.meta.env.VITE_BACKEND_URL}/api/cloudflare`;
-  }
-  // Then check for VITE_API_URL for backward compatibility
-  else if (import.meta.env.VITE_API_URL && typeof import.meta.env.VITE_API_URL === 'string' && import.meta.env.VITE_API_URL.trim() !== '') {
-    baseUrl = import.meta.env.VITE_API_URL;
-  }
-  // If neither is available, try to determine the URL dynamically based on the current location
-  else {
-    const protocol = window.location.protocol;
-    const hostname = window.location.hostname;
-    // If port is 8080 (frontend), assume backend is on 3001, otherwise use the same port
-    const port = window.location.port === '8080' ? '3001' : window.location.port;
-    baseUrl = `${protocol}//${hostname}:${port}/api/cloudflare`;
-  }
-
-  baseUrl = `https://api-cloudflare.endusercompute.in/api/cloudflare`;
+  // Get the backend API URL from localStorage via apiConfig
+  const baseUrl = getApiBaseUrl() + '/cloudflare';
   
   console.log(`API request to: ${baseUrl}${endpoint}`);
   
   try {
     const response = await fetch(`${baseUrl}${endpoint}`, {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CF-API-KEY': credentials.apiKey,
-        'X-CF-EMAIL': credentials.email || '',
-        'X-CF-ACCOUNT-ID': credentials.accountId,
-        'X-CF-ZONE-ID': credentials.zoneId
-      },
+      headers: getDefaultHeaders(credentials),
       body: body ? JSON.stringify(body) : undefined,
     });
     
