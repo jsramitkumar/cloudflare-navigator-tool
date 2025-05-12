@@ -1,4 +1,3 @@
-
 # Cloudflare Navigator
 
 ## Overview
@@ -53,36 +52,26 @@ Deploy frontend and backend separately, ideal for distributed architectures:
 #### Frontend Deployment
 ```bash
 # Build the frontend image
-docker build -t cloudflare-navigator-frontend:latest -f Dockerfile.frontend .
+docker build -t cloudflare-navigator-frontend:latest -f FE/Dockerfile .
 
 # Run the frontend container
-docker run -d -p 8080:8080 -e API_URL=http://your-backend-url:3001/api cloudflare-navigator-frontend:latest
+docker run -d -p 8080:8080 -e BACKEND_SERVICE_URL=http://your-backend-url:3001/ cloudflare-navigator-frontend:latest
 ```
 
 #### Backend Deployment
 ```bash
 # Build the backend image
-docker build -t cloudflare-navigator-backend:latest -f Dockerfile .
+docker build -t cloudflare-navigator-backend:latest -f BE/Dockerfile .
 
 # Run the backend container
-docker run -d -p 3001:3001 -e API_URL=https://api.cloudflare.com/client/v4 cloudflare-navigator-backend:latest
+docker run -d -p 3001:3001 cloudflare-navigator-backend:latest
 ```
 
 ### 2. Docker Compose Deployment
 
-#### Frontend Only
+For a complete deployment with both frontend and backend:
 ```bash
-docker-compose -f frontend-docker-compose.yml up -d
-```
-
-#### Backend Only
-```bash
-docker-compose -f backend-docker-compose.yml up -d
-```
-
-#### Combined Deployment
-```bash
-docker-compose -f combined-docker-compose.yml up -d
+docker-compose up -d
 ```
 
 ### Environment Variables for Container Configuration
@@ -92,23 +81,31 @@ The following environment variables can be configured during container deploymen
 #### Backend Environment Variables
 | Variable | Description | Default Value | Example |
 |----------|-------------|---------------|---------|
-| `API_URL` | Cloudflare API endpoint | `https://api.cloudflare.com/client/v4` | `https://custom-api.cloudflare.com` |
-| `PORT` | Port for the backend API | `3001` | `8080` |
 | `NODE_ENV` | Node.js environment | `production` | `development` |
-| `HOST` | Hostname to bind to | `0.0.0.0` | `localhost` |
 
 #### Frontend Environment Variables
 | Variable | Description | Default Value | Example |
 |----------|-------------|---------------|---------|
-| `API_URL` | Backend API URL | `/api` | `http://backend-service:3001/api` |
+| `BACKEND_SERVICE_URL` | Backend API URL | `http://backend:3001/` | `http://your-api-server:3001/` |
 
-#### Combined Deployment Environment Variables
-| Variable | Description | Default Value | Example |
-|----------|-------------|---------------|---------|
-| `BACKEND_IMAGE` | Backend Docker image | `jsrankit/cloudflare-dns-backend:latest` | `myregistry/backend:v1.0` |
-| `FRONTEND_IMAGE` | Frontend Docker image | `jsrankit/cloudflare-dns-frontend:latest` | `myregistry/frontend:v1.0` |
-| `BACKEND_URL` | URL for frontend to reach backend | `http://cloudflare-navigator-backend:3001/api` | `https://api.example.com` |
-| `PORT` | Backend port | `3001` | `8080` |
+## Nginx Configuration
+
+The frontend uses Nginx to serve static files and proxy API requests to the backend. The main features of our Nginx configuration:
+
+1. **Environment Variable Substitution**: The backend URL is configurable via the `BACKEND_SERVICE_URL` environment variable
+2. **API Proxying**: All requests to `/api/` are forwarded to the backend service
+3. **CORS Headers**: Appropriate CORS headers are added to API responses
+4. **SPA Support**: All frontend routes are properly handled for the Single Page Application
+
+### Troubleshooting Nginx Configuration
+
+If you encounter issues with the Nginx configuration:
+
+1. Check container logs: `docker logs <frontend-container-id>`
+2. Verify environment variables are correctly passed to the container
+3. Ensure the backend service is reachable from the frontend container
+4. If using custom networks, make sure both containers are on the same network
+5. For advanced debugging, you can exec into the container: `docker exec -it <frontend-container-id> /bin/bash`
 
 ## Configuration
 
