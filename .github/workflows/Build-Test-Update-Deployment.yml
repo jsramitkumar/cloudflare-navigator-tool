@@ -32,18 +32,7 @@ jobs:
         DATE_TAG=$(date +'%d%m%y-%H-%M')
         echo "DATE_TAG=$DATE_TAG" >> $GITHUB_ENV
         echo "Generated date tag: $DATE_TAG"
-
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        platforms: linux/amd64,linux/arm64
-        push: true
-        tags: |
-          jsrankit/cloudflare-dns-manager:${{ env.DATE_TAG }}
-          jsrankit/cloudflare-dns-manager:latest
-
-
+        
     # Build and push frontend image
       - name: Build and push frontend
         uses: docker/build-push-action@v4
