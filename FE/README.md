@@ -1,3 +1,4 @@
+
 # Cloudflare Navigator
 
 ## Overview
@@ -27,6 +28,68 @@ Cloudflare Navigator is a powerful web application that allows you to manage you
 - Docker (for containerized deployment)
 - Docker Compose (for multi-container deployment)
 - A Cloudflare account with API access
+
+## ⚠️ IMPORTANT: Required Project Files
+
+This project requires the following files that must be created in the root directory:
+
+1. **package.json** - Root package.json file to manage project dependencies and scripts
+2. **index.html** - Root HTML template file
+3. **vite.config.ts** - Vite configuration file for the project
+
+**Note:** These files cannot be created by AI. You must create them manually.
+
+### Required package.json content (create in root directory)
+```json
+{
+  "name": "cloudflare-navigator",
+  "version": "1.0.0",
+  "description": "Cloudflare Navigator Tool",
+  "scripts": {
+    "install:frontend": "cd FE && npm install",
+    "install:backend": "cd BE && npm install",
+    "install:all": "npm run install:frontend && npm run install:backend",
+    "start": "cd FE && npm run dev",
+    "start:server": "cd BE && npm start",
+    "build": "cd FE && npm run build",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  },
+  "keywords": ["cloudflare", "dns", "tunnels"],
+  "author": "",
+  "license": "MIT"
+}
+```
+
+### Required index.html content (create in root directory)
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="0;url=/FE/index.html">
+  <title>Cloudflare Navigator</title>
+</head>
+<body>
+  <p>Redirecting to application...</p>
+</body>
+</html>
+```
+
+### Required vite.config.ts content (create in root directory)
+```typescript
+import { defineConfig } from 'vite';
+import path from 'path';
+
+// This is a minimal config that redirects to the actual FE folder
+export default defineConfig({
+  root: 'FE',
+  server: {
+    port: 8080
+  }
+});
+```
 
 ## Network Requirements
 
@@ -107,65 +170,29 @@ If you encounter issues with the Nginx configuration:
 4. If using custom networks, make sure both containers are on the same network
 5. For advanced debugging, you can exec into the container: `docker exec -it <frontend-container-id> /bin/bash`
 
-## Configuration
+## Quick Start
 
-### Cloudflare API Credentials
+To set up the project locally:
 
-1. Navigate to the Settings page in the application
-2. Click "Add New Cloudflare Account"
-3. Enter the following details:
-   - Account Name (custom name for your reference)
-   - API Key
-   - Email (optional)
-   - Account ID
-   - Zone ID
-
-### Backend API URL Configuration
-
-1. Navigate to the Settings page
-2. In the "Backend API Configuration" section:
-   - Enter the full URL to your backend API (e.g., `http://localhost:3001/api`)
-   - Click "Save and Test Connection" to verify connectivity
-   - **Important**: The URL must include the full path to the API without the `/cloudflare` suffix
-   - Example: If your backend is at `http://backend-server:3001`, use `http://backend-server:3001/api`
-
-## Project Structure
-
-```
-├── Dockerfile            # Backend Dockerfile
-├── Dockerfile.frontend   # Frontend Dockerfile
-├── docker-compose.yml    # Combined deployment configuration
-├── frontend-docker-compose.yml # Frontend-only deployment
-├── backend-docker-compose.yml  # Backend-only deployment
-├── nginx.conf            # Nginx configuration for frontend
-├── src/
-│   ├── components/       # React components
-│   ├── pages/            # Application pages
-│   ├── services/         # API services
-│   └── server/           # Backend Express server
-```
-
-## Troubleshooting
-
-- **Custom API URL Issues**: 
-  - Ensure the URL entered in Settings includes `/api` but NOT `/cloudflare`
-  - Example correct format: `http://your-backend:3001/api`
-  - After saving, test the connection using the "Save and Test Connection" button
-  - If connection fails, check backend logs and network connectivity
-
-- **General Issues**:
-  - Check if your application URLs are configured correctly in the environment variables
-  - Verify network connectivity to Cloudflare API
-  - Ensure Docker containers have proper port mapping
-  - Validate API credentials in the application settings
-  - Check logs using `docker logs [container_name]`
-  - Test backend connectivity in the Settings page
+1. **Create the required files** mentioned in the important section above
+2. **Install dependencies**:
+   ```bash
+   npm run install:all
+   ```
+3. **Run development servers**:
+   ```bash
+   # Run frontend
+   npm run start
+   
+   # Run backend in a separate terminal
+   npm run start:server
+   ```
+4. **For Docker deployment**:
+   ```bash
+   npm run docker:build
+   npm run docker:up
+   ```
 
 ## License
 
 Distributed under the MIT License.
-
-## Contact
-
-Amit Gupta
-Project Link: [https://github.com/jsramitkumar/cloudflare-navigator-tool](https://github.com/jsramitkumar/cloudflare-navigator-tool)
