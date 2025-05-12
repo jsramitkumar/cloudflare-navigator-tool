@@ -15,20 +15,26 @@ RUN npm ci
 COPY FE/ .
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
+# Production stage - use Node.js instead of Nginx
+FROM node:18-alpine
+
+WORKDIR /app
 
 # Copy built assets from build stage
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/package.json .
 
-# Copy custom nginx configuration
-COPY FE/nginx.conf /etc/nginx/conf.d/default.conf.template
+# Install only production dependencies
+RUN npm install --production
 
-# Expose port
-EXPOSE 8080
+# Add a simple Express server to serve the static files
+COPY FE/server.js .
 
 # Set a default backend service URL
 ENV BACKEND_SERVICE_URL=http://backend:3001/
 
-# Use envsubst to replace environment variables in nginx config at runtime
-CMD ["/bin/sh", "-c", "envsubst '$$BACKEND_SERVICE_URL' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+# Expose port
+EXPOSE 8080
+
+# Start the Node.js server
+CMD ["node", "server.js"]

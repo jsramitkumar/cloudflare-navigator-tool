@@ -9,6 +9,7 @@ services:
     depends_on:
       - backend
     environment:
+      - PORT=8080
       - BACKEND_SERVICE_URL=http://backend:3001/
     networks:
       - app-network
