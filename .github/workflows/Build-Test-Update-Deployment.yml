@@ -43,6 +43,31 @@ jobs:
           jsrankit/cloudflare-dns-manager:${{ env.DATE_TAG }}
           jsrankit/cloudflare-dns-manager:latest
 
+
+    # Build and push frontend image
+      - name: Build and push frontend
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          file: ./FE/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-frontend:latest
+            ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-frontend:${{ env.DATE_TAG }}
+
+      # Build and push backend image
+      - name: Build and push backend
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          file: ./BE/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-backend:latest
+            ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-backend:${{ env.DATE_TAG }}
+
     - name: Checkout deployment repository
       uses: actions/checkout@v4
       with:
@@ -55,14 +80,16 @@ jobs:
           cd deployment-repo
           find . -type f | grep yaml
 
-    - name: Update deployment.yaml with new image tag
+    - name: Update FE-deployment.yaml and BE-deployment.yaml with new image tag
       run: |
         # Update the deployment.yaml file with the new image tag
         cd deployment-repo
-        sed -i "s|jsrankit/cloudflare-dns-manager:[a-zA-Z0-9._-]*|jsrankit/cloudflare-dns-manager:${{ env.DATE_TAG }}|g" prod/deployment.yaml
+        sed -i "s|${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-frontend:[a-zA-Z0-9._-]*|${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-frontend:${{ env.DATE_TAG }}|g" prod/FE-deployment.yaml
+        sed -i "s|${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-backend:[a-zA-Z0-9._-]*|${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-backend:${{ env.DATE_TAG }}|g" prod/BE-deployment.yaml
         
         # Verify the update was successful
-        grep "image:" prod/deployment.yaml
+        grep "image:" prod/FE-deployment.yaml
+        grep "image:" prod/FE-deployment.yaml
 
     - name: Commit and push changes to deployment repo
       run: |
