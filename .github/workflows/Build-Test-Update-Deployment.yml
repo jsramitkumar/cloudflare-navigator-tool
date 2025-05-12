@@ -33,29 +33,29 @@ jobs:
         echo "DATE_TAG=$DATE_TAG" >> $GITHUB_ENV
         echo "Generated date tag: $DATE_TAG"
 
-# Build and push frontend image
+    # Build and push frontend image
     - name: Build and push frontend
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          file: ./FE/Dockerfile
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-frontend:latest
-            ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-frontend:${{ env.DATE_TAG }}
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        file: ./FE/Dockerfile
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-frontend:latest
+          ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-frontend:${{ env.DATE_TAG }}
 
-      # Build and push backend image
+    # Build and push backend image
     - name: Build and push backend
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          file: ./BE/Dockerfile
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-backend:latest
-            ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-backend:${{ env.DATE_TAG }}
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        file: ./BE/Dockerfile
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-backend:latest
+          ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-backend:${{ env.DATE_TAG }}
 
     - name: Checkout deployment repository
       uses: actions/checkout@v4
@@ -71,20 +71,20 @@ jobs:
 
     - name: Update FE-deployment.yaml and BE-deployment.yaml with new image tag
       run: |
-        # Update the deployment.yaml file with the new image tag
+        # Update the deployment.yaml files with the new image tag
         cd deployment-repo
         sed -i "s|${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-frontend:[a-zA-Z0-9._-]*|${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-frontend:${{ env.DATE_TAG }}|g" prod/FE-deployment.yaml
         sed -i "s|${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-backend:[a-zA-Z0-9._-]*|${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-backend:${{ env.DATE_TAG }}|g" prod/BE-deployment.yaml
         
         # Verify the update was successful
         grep "image:" prod/FE-deployment.yaml
-        grep "image:" prod/FE-deployment.yaml
+        grep "image:" prod/BE-deployment.yaml
 
     - name: Commit and push changes to deployment repo
       run: |
         cd deployment-repo
         git config --global user.name 'GitHub Actions Bot'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        git add prod/deployment.yaml
-        git commit -m "Update deployment.yaml with new image tag for your-image-name:${{ env.DATE_TAG }}"
+        git add prod/FE-deployment.yaml prod/BE-deployment.yaml
+        git commit -m "Update deployments with new image tags: ${{ env.DATE_TAG }}"
         git push
