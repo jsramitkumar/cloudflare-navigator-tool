@@ -1,9 +1,9 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { TunnelIngress } from '@/services/cloudflareApi';
+import { TunnelIngress, domainsApi } from '@/services/cloudflareApi';
 import {
   Form,
   FormControl,
@@ -15,9 +15,17 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const tunnelIngressSchema = z.object({
-  hostname: z.string().min(1, 'Hostname is required'),
+  domain: z.string().min(1, 'Domain is required'),
+  subdomain: z.string().optional(),
   service: z.string().min(1, 'Service is required'),
   path: z.string().optional(),
   noTLSVerify: z.boolean().default(false),
@@ -39,14 +47,49 @@ const TunnelIngressForm: React.FC<TunnelIngressFormProps> = ({
   submitButtonText = 'Save',
   onCancel,
 }) => {
+  const [domains, setDomains] = useState<string[]>([]);
+  const [isLoadingDomains, setIsLoadingDomains] = useState(true);
+
+  // Parse hostname into domain and subdomain parts
+  const parseHostname = (hostname: string) => {
+    if (!hostname) return { domain: '', subdomain: '' };
+    
+    const parts = hostname.split('.');
+    if (parts.length >= 2) {
+      const domain = parts.slice(-2).join('.');
+      const subdomain = parts.length > 2 ? parts.slice(0, -2).join('.') : '';
+      return { domain, subdomain };
+    }
+    return { domain: hostname, subdomain: '' };
+  };
+
+  const { domain: initialDomain, subdomain: initialSubdomain } = parseHostname(initialValues?.hostname || '');
+
   // Transform the initial values to match the form schema
   const defaultValues: Partial<TunnelIngressFormValues> = {
-    hostname: initialValues?.hostname || '',
+    domain: initialDomain,
+    subdomain: initialSubdomain,
     service: initialValues?.service || '',
     path: initialValues?.path || '',
     noTLSVerify: initialValues?.originRequest?.noTLSVerify || false,
     originServerName: initialValues?.originRequest?.originServerName || '',
   };
+
+  // Load available domains
+  useEffect(() => {
+    const loadDomains = async () => {
+      try {
+        const availableDomains = await domainsApi.listDomains();
+        setDomains(availableDomains);
+      } catch (error) {
+        console.error('Failed to load domains:', error);
+      } finally {
+        setIsLoadingDomains(false);
+      }
+    };
+
+    loadDomains();
+  }, []);
 
   const form = useForm<TunnelIngressFormValues>({
     resolver: zodResolver(tunnelIngressSchema),
@@ -54,9 +97,14 @@ const TunnelIngressForm: React.FC<TunnelIngressFormProps> = ({
   });
 
   const handleSubmit = (values: TunnelIngressFormValues) => {
+    // Construct hostname from domain and subdomain
+    const hostname = values.subdomain 
+      ? `${values.subdomain}.${values.domain}` 
+      : values.domain;
+
     // Transform the form values back to the TunnelIngress format
     const formattedValues: Partial<TunnelIngress> = {
-      hostname: values.hostname,
+      hostname,
       service: values.service,
       path: values.path || undefined,
       originRequest: {
@@ -65,7 +113,7 @@ const TunnelIngressForm: React.FC<TunnelIngressFormProps> = ({
       },
     };
 
-    onSubmit(values);
+    onSubmit(formattedValues);
   };
 
   return (
@@ -73,12 +121,37 @@ const TunnelIngressForm: React.FC<TunnelIngressFormProps> = ({
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <FormField
           control={form.control}
-          name="hostname"
+          name="domain"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Hostname</FormLabel>
+              <FormLabel>Domain</FormLabel>
               <FormControl>
-                <Input placeholder="example.com" {...field} />
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={isLoadingDomains ? "Loading domains..." : "Select a domain"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {domains.map((domain) => (
+                      <SelectItem key={domain} value={domain}>
+                        {domain}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="subdomain"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Subdomain (Optional)</FormLabel>
+              <FormControl>
+                <Input placeholder="www, api, app" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

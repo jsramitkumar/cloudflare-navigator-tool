@@ -301,6 +301,24 @@ export const tunnelsApi = {
   }
 };
 
+// Domains API for getting available domains from DNS zones
+export const domainsApi = {
+  listDomains: async (): Promise<string[]> => {
+    const dnsRecords = await dnsRecordsApi.listRecords();
+    // Extract unique domains from DNS records
+    const domains = new Set<string>();
+    dnsRecords.forEach(record => {
+      // Get the domain part from the name (remove subdomain if any)
+      const parts = record.name.split('.');
+      if (parts.length >= 2) {
+        const domain = parts.slice(-2).join('.');
+        domains.add(domain);
+      }
+    });
+    return Array.from(domains).sort();
+  },
+};
+
 // Test if credentials are valid
 export const testCredentials = async (credentials: Omit<CloudflareCredentials, 'id'>): Promise<boolean> => {
   try {
