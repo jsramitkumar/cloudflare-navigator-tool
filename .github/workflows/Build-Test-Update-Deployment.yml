@@ -3,12 +3,114 @@ name: Multi-Arch Build and Update Deployment
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - '.github/*.yml'
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '18'
 
 jobs:
-  build-and-update:
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          cd FE && npm ci
+          cd ../BE && npm ci
+
+      - name: Run ESLint
+        run: |
+          cd FE && npm run lint
+          cd ../BE && npm run lint
+
+      - name: Check code formatting
+        run: |
+          cd FE && npm run format:check
+          cd ../BE && npm run format:check
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    needs: code-quality
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          cd FE && npm ci
+          cd ../BE && npm ci
+
+      - name: Run tests
+        run: |
+          cd FE && npm test
+          cd ../BE && npm test
+
+      - name: Upload test coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: |
+            FE/coverage
+            BE/coverage
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner in fs mode
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          timeout: '10m0s'
+
+      - name: Run Trivy vulnerability scanner in repo mode
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'repo'
+          ignore-unfixed: true
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          timeout: '10m0s'
+
+  build-images:
+    needs: security-scan
     runs-on: ubuntu-latest
     
+    outputs:
+      date_tag: ${{ steps.datetag.outputs.date_tag }}
     steps:
     - name: Checkout application code
       uses: actions/checkout@v4
@@ -18,6 +120,26 @@ jobs:
       
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
+      with:
+        buildkitd-flags: --debug
+        
+    - name: Cache Docker layers
+      uses: actions/cache@v3
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ matrix.component }}-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-${{ matrix.component }}-
+          ${{ runner.os }}-buildx-
+          
+    - name: Set build args
+      id: build_args
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.environment }}" = "staging" ]; then
+          echo "build_arg_env=staging" >> $GITHUB_OUTPUT
+        else
+          echo "build_arg_env=production" >> $GITHUB_OUTPUT
+        fi
 
     - name: Login to Docker Hub
       uses: docker/login-action@v3
@@ -30,61 +152,115 @@ jobs:
       run: |
         # Generate tag in DDMMYY-HH-MM format
         DATE_TAG=$(date +'%d%m%y-%H-%M')
-        echo "DATE_TAG=$DATE_TAG" >> $GITHUB_ENV
+        echo "date_tag=$DATE_TAG" >> $GITHUB_OUTPUT
         echo "Generated date tag: $DATE_TAG"
 
-    # Build and push frontend image
-    - name: Build and push frontend
+        - name: Build and push ${{ matrix.component }}
       uses: docker/build-push-action@v4
       with:
         context: .
         platforms: linux/amd64,linux/arm64
-        file: ./FE/Dockerfile
+        file: ${{ matrix.dockerfile }}
         push: true
+        build-args: |
+          NODE_ENV=${{ steps.build_args.outputs.build_arg_env }}
+        cache-from: type=local,src=/tmp/.buildx-cache
+        cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
         tags: |
-          ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-frontend:latest
-          ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-frontend:${{ env.DATE_TAG }}
-
-    # Build and push backend image
-    - name: Build and push backend
-      uses: docker/build-push-action@v4
+          ${{ secrets.DOCKER_USERNAME }}/${{ matrix.image }}:latest
+          ${{ secrets.DOCKER_USERNAME }}/${{ matrix.image }}:${{ steps.datetag.outputs.date_tag }}
+        labels: |
+          org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          org.opencontainers.image.revision=${{ github.sha }}
+          org.opencontainers.image.created=${{ steps.datetag.outputs.date_tag }}
+          
+    - name: Run Trivy vulnerability scanner for ${{ matrix.component }}
+      uses: aquasecurity/trivy-action@master
       with:
-        context: .
-        platforms: linux/amd64,linux/arm64
-        file: ./BE/Dockerfile
-        push: true
-        tags: |
-          ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-backend:latest
-          ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-backend:${{ env.DATE_TAG }}
-
-    - name: Checkout deployment repository
-      uses: actions/checkout@v4
-      with:
-        repository: jsramitkumar/argo-cd-cloudflare-dns
-        token: ${{ secrets.REPO_PASS }}
-        path: deployment-repo
-
-    - name: Debug repository structure
-      run: |
-          cd deployment-repo
-          find . -type f | grep yaml
-
-    - name: Update FE-deployment.yaml and BE-deployment.yaml with new image tag
-      run: |
-        # Update the deployment.yaml files with the new image tag
-        cd deployment-repo
-        sed -i "s|${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-frontend:[a-zA-Z0-9._-]*|${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-frontend:${{ env.DATE_TAG }}|g" prod/FE-deployment.yaml
-        sed -i "s|${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-backend:[a-zA-Z0-9._-]*|${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-backend:${{ env.DATE_TAG }}|g" prod/BE-deployment.yaml
+        image-ref: '${{ secrets.DOCKER_USERNAME }}/${{ matrix.image }}:${{ steps.datetag.outputs.date_tag }}'
+        format: 'sarif'
+        output: 'trivy-results-${{ matrix.component }}.sarif'
+        severity: 'CRITICAL,HIGH'
         
-        # Verify the update was successful
-        grep "image:" prod/FE-deployment.yaml
-        grep "image:" prod/BE-deployment.yaml
-
-    - name: Commit and push changes to deployment repo
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results-${{ matrix.component }}.sarif'
+        category: ${{ matrix.component }}
+    
+    # Temporary fix for cache
+    - name: Move cache
       run: |
-        cd deployment-repo
+        rm -rf /tmp/.buildx-cache
+        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+    # Scan the built images for vulnerabilities
+    - name: Run Trivy vulnerability scanner in image mode
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: '${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-frontend:${{ steps.datetag.outputs.date_tag }}'
+        format: 'table'
+        exit-code: '1'
+        ignore-unfixed: true
+        severity: 'CRITICAL,HIGH'
+        timeout: '10m0s'
+
+  update-k8s:
+    needs: build-images
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    environment:
+      name: ${{ github.event.inputs.environment || 'production' }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Update deployment configurations with new image tags
+      run: |
+        # Update the deployment files with the new image tag
+        # Update frontend deployment
+        if ! sed -i "s|image: ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-frontend:[a-zA-Z0-9._-]*|image: ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-frontend:${{ needs.build-images.outputs.date_tag }}|g" k8s/frontend-deployment.yaml; then
+          echo "Failed to update frontend deployment image tag"
+          exit 1
+        fi
+        
+        # Update backend deployment
+        if ! sed -i "s|image: ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-backend:[a-zA-Z0-9._-]*|image: ${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-backend:${{ needs.build-images.outputs.date_tag }}|g" k8s/backend-deployment.yaml; then
+          echo "Failed to update backend deployment image tag"
+          exit 1
+        fi
+        
+        # Verify the updates were successful
+        echo "Frontend deployment image:"
+        if ! grep "image:" k8s/frontend-deployment.yaml; then
+          echo "Failed to verify frontend image update"
+          exit 1
+        fi
+        
+        echo "Backend deployment image:"
+        if ! grep "image:" k8s/backend-deployment.yaml; then
+          echo "Failed to verify backend image update"
+          exit 1
+        fi
+
+    - name: Commit and push changes to main repo
+      run: |
         git config --global user.name 'GitHub Actions Bot'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        git add prod/FE-deployment.yaml prod/BE-deployment.yaml
-        git commit -m "Update deployments with new image tags: ${{ env.DATE_TAG }}"
+        git add k8s/frontend-deployment.yaml k8s/backend-deployment.yaml
+        
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+          exit 0
+        fi
+        
+        git commit -m "Update deployments with new image tags: ${{ needs.build-images.outputs.date_tag }}"
         git push
+      
+    - name: Verify ArgoCD Configuration
+      run: |
+        if [ ! -f k8s/frontend-deployment.yaml ] || [ ! -f k8s/backend-deployment.yaml ] || [ ! -f k8s/shared-resources.yaml ]; then
+          echo "Missing required Kubernetes configuration files"
+          exit 1
+        fi
