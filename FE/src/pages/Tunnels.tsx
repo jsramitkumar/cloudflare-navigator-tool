@@ -291,7 +291,12 @@ const Tunnels: React.FC = () => {
                     <Button 
                       variant="ghost" 
                       size="icon"
-                      onClick={() => window.open(`https://dash.cloudflare.com/tunnels/${tunnel.id}`, '_blank')}
+                      onClick={() => {
+                        const credentials = getCredentials();
+                        if (credentials?.accountId) {
+                          window.open(`https://one.dash.cloudflare.com/${credentials.accountId}/networks/tunnels/cfd_tunnel/${tunnel.id}/edit?tab=overview`, '_blank');
+                        }
+                      }}
                     >
                       <ExternalLink className="h-4 w-4" />
                     </Button>

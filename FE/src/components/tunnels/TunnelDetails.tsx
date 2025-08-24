@@ -38,7 +38,7 @@ import {
   ExternalLink,
   ArrowLeft
 } from 'lucide-react';
-import { CloudflareTunnel, TunnelConfig, TunnelIngress, tunnelsApi, dnsRecordsApi } from '@/services/cloudflareApi';
+import { CloudflareTunnel, TunnelConfig, TunnelIngress, tunnelsApi, dnsRecordsApi, getCredentials } from '@/services/cloudflareApi';
 import AddIngressDialog from './AddIngressDialog';
 import EditIngressDialog from './EditIngressDialog';
 
@@ -420,7 +420,12 @@ const TunnelDetails: React.FC<TunnelDetailsProps> = ({ tunnelId, onBack }) => {
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => window.open(`https://dash.cloudflare.com/tunnels/${tunnel?.id}`, '_blank')}
+                onClick={() => {
+                  const credentials = getCredentials();
+                  if (credentials?.accountId && tunnel?.id) {
+                    window.open(`https://one.dash.cloudflare.com/${credentials.accountId}/networks/tunnels/cfd_tunnel/${tunnel.id}/edit?tab=overview`, '_blank');
+                  }
+                }}
               >
                 <ExternalLink className="h-4 w-4 mr-2" /> View in Cloudflare
               </Button>
