@@ -29,16 +29,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup Node.js
+      - name: Setup Node.js for Frontend
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: FE/package-lock.json
 
-      - name: Install dependencies
-        run: |
-          cd FE && npm ci
-          cd ../BE && npm ci
+      - name: Setup Node.js for Backend
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: BE/package-lock.json
+
+      - name: Install Frontend dependencies
+        run: cd FE && npm ci
+
+      - name: Install Backend dependencies
+        run: cd BE && npm ci
 
       - name: Run ESLint
         run: |
@@ -56,16 +65,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup Node.js
+      - name: Setup Node.js for Frontend
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: FE/package-lock.json
 
-      - name: Install dependencies
-        run: |
-          cd FE && npm ci
-          cd ../BE && npm ci
+      - name: Setup Node.js for Backend
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: BE/package-lock.json
+
+      - name: Install Frontend dependencies
+        run: cd FE && npm ci
+
+      - name: Install Backend dependencies
+        run: cd BE && npm ci
 
       - name: Run tests
         run: |
@@ -197,12 +215,6 @@ jobs:
         sarif_file: 'trivy-results-${{ matrix.component }}.sarif'
         category: ${{ matrix.component }}
     
-    # Temporary fix for cache
-    - name: Move cache
-      run: |
-        rm -rf /tmp/.buildx-cache
-        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
     # Cache management
     - name: Move cache
       run: |
