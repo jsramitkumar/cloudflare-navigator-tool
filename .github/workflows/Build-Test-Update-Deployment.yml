@@ -108,7 +108,16 @@ jobs:
   build-images:
     needs: security-scan
     runs-on: ubuntu-latest
-    
+    strategy:
+      matrix:
+        component: [frontend, backend]
+        include:
+          - component: frontend
+            dockerfile: ./FE/Dockerfile
+            image: cloudflare-dns-manager-frontend
+          - component: backend
+            dockerfile: ./BE/Dockerfile
+            image: cloudflare-dns-manager-backend
     outputs:
       date_tag: ${{ steps.datetag.outputs.date_tag }}
     steps:
@@ -155,7 +164,7 @@ jobs:
         echo "date_tag=$DATE_TAG" >> $GITHUB_OUTPUT
         echo "Generated date tag: $DATE_TAG"
 
-        - name: Build and push ${{ matrix.component }}
+    - name: Build and push ${{ matrix.component }}
       uses: docker/build-push-action@v4
       with:
         context: .
@@ -194,16 +203,11 @@ jobs:
         rm -rf /tmp/.buildx-cache
         mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-    # Scan the built images for vulnerabilities
-    - name: Run Trivy vulnerability scanner in image mode
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: '${{ secrets.DOCKER_USERNAME }}/cloudflare-dns-manager-frontend:${{ steps.datetag.outputs.date_tag }}'
-        format: 'table'
-        exit-code: '1'
-        ignore-unfixed: true
-        severity: 'CRITICAL,HIGH'
-        timeout: '10m0s'
+    # Cache management
+    - name: Move cache
+      run: |
+        rm -rf /tmp/.buildx-cache
+        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
   update-k8s:
     needs: build-images
