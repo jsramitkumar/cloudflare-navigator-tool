@@ -62,7 +62,8 @@ const Settings: React.FC = () => {
   const [isTestingBackend, setIsTestingBackend] = useState(false);
   const [accounts, setAccounts] = useState<CloudflareCredentials[]>([]);
   const [editMode, setEditMode] = useState(false);
-  const [currentAccountId, setCurrentAccountId] = useState<string | null>(null);
+  const [activeAccountId, setActiveAccountIdState] = useState<string | null>(null);
+  const [showAccountForm, setShowAccountForm] = useState(false);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -87,10 +88,10 @@ const Settings: React.FC = () => {
     loadAccounts();
   }, []);
   
-  // When currentAccountId changes, load that account's data
+  // When activeAccountId changes, load that account's data
   useEffect(() => {
-    if (currentAccountId) {
-      const account = accounts.find(acc => acc.id === currentAccountId);
+    if (editMode && activeAccountId) {
+      const account = accounts.find(acc => acc.id === activeAccountId);
       if (account) {
         form.reset({
           name: account.name,
@@ -99,9 +100,8 @@ const Settings: React.FC = () => {
           accountId: account.accountId,
           zoneId: account.zoneId,
         });
-        setEditMode(true);
       }
-    } else {
+    } else if (!editMode) {
       form.reset({
         name: '',
         apiKey: '',
@@ -109,20 +109,18 @@ const Settings: React.FC = () => {
         accountId: '',
         zoneId: '',
       });
-      setEditMode(false);
     }
-  }, [currentAccountId, accounts, form]);
+  }, [activeAccountId, accounts, form, editMode]);
   
   const loadAccounts = () => {
     const accountsList = getAccountsList() || [];
     setAccounts(accountsList);
     
     const activeAccount = getActiveAccount();
-    if (activeAccount) {
-      setCurrentAccountId(activeAccount.id);
-    } else {
-      setCurrentAccountId(null);
-    }
+    setActiveAccountIdState(activeAccount?.id || null);
+    
+    // Show account form if no accounts exist
+    setShowAccountForm(accountsList.length === 0);
   };
   
   const onSubmit = async (data: FormValues) => {
@@ -139,28 +137,33 @@ const Settings: React.FC = () => {
       
       await testCredentials(credentialData);
       
-      if (editMode && currentAccountId) {
+      if (editMode && activeAccountId) {
         // Update existing account
-        updateCredentials(currentAccountId, credentialData);
+        updateCredentials(activeAccountId, credentialData);
+        toast({
+          title: "Account updated",
+          description: `${data.name} has been updated successfully.`,
+        });
       } else {
         // Create new account
-        saveCredentials(credentialData);
+        const newAccount = saveCredentials(credentialData);
+        // Set the new account as active
+        setActiveAccount(newAccount.id);
+        toast({
+          title: "Account added",
+          description: `${data.name} has been added successfully.`,
+        });
       }
       
       loadAccounts();
       setEditMode(false);
-      setCurrentAccountId(null);
+      setShowAccountForm(false);
       form.reset({
         name: '',
         apiKey: '',
         email: '',
         accountId: '',
         zoneId: '',
-      });
-      
-      toast({
-        title: editMode ? "Account updated" : "Account added",
-        description: `${data.name} has been ${editMode ? 'updated' : 'added'} successfully.`,
       });
       
       // Navigate to dashboard after adding first account
@@ -179,11 +182,11 @@ const Settings: React.FC = () => {
   };
   
   const handleDeleteAccount = () => {
-    if (currentAccountId) {
-      deleteAccount(currentAccountId);
+    if (activeAccountId) {
+      deleteAccount(activeAccountId);
       loadAccounts();
-      setCurrentAccountId(null);
       setEditMode(false);
+      setShowAccountForm(accounts.length <= 1); // Show form if this was the last account
       form.reset({
         name: '',
         apiKey: '',
@@ -197,8 +200,8 @@ const Settings: React.FC = () => {
   const handleClearAll = () => {
     clearCredentials();
     loadAccounts();
-    setCurrentAccountId(null);
     setEditMode(false);
+    setShowAccountForm(true);
     form.reset({
       name: '',
       apiKey: '',
@@ -209,13 +212,41 @@ const Settings: React.FC = () => {
   };
   
   const handleAccountSelect = (accountId: string) => {
+    console.log('Switching to account:', accountId);
     setActiveAccount(accountId);
-    setCurrentAccountId(accountId);
+    setActiveAccountIdState(accountId);
+    
+    // Refresh the sidebar by triggering a storage event
+    window.dispatchEvent(new Event('storage'));
+    
+    toast({
+      title: "Account switched",
+      description: `Switched to ${accounts.find(acc => acc.id === accountId)?.name || 'selected account'}`,
+    });
+  };
+  
+  const handleEditAccount = () => {
+    if (activeAccountId) {
+      setEditMode(true);
+      setShowAccountForm(true);
+    }
+  };
+  
+  const handleAddNewAccount = () => {
+    setEditMode(false);
+    setShowAccountForm(true);
+    form.reset({
+      name: '',
+      apiKey: '',
+      email: '',
+      accountId: '',
+      zoneId: '',
+    });
   };
   
   const handleCancelEdit = () => {
     setEditMode(false);
-    setCurrentAccountId(null);
+    setShowAccountForm(accounts.length === 0); // Only hide if we have accounts
     form.reset({
       name: '',
       apiKey: '',
@@ -303,14 +334,15 @@ const Settings: React.FC = () => {
           <CardHeader>
             <CardTitle>Cloudflare Accounts</CardTitle>
             <CardDescription>
-              Manage your Cloudflare accounts or add a new one.
+              Switch between your Cloudflare accounts or manage them.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <AccountSelector 
               accounts={accounts} 
-              activeAccountId={currentAccountId} 
-              onSelect={handleAccountSelect} 
+              activeAccountId={activeAccountId} 
+              onSelect={handleAccountSelect}
+              onAddNew={handleAddNewAccount}
             />
           </CardContent>
           <CardFooter className="flex justify-between">
@@ -320,150 +352,169 @@ const Settings: React.FC = () => {
             >
               Clear All Accounts
             </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleEditAccount}
+              disabled={!activeAccountId}
+            >
+              Edit Selected Account
+            </Button>
           </CardFooter>
         </Card>
       )}
       
-      <Card>
-        <CardHeader>
-          <CardTitle>{editMode ? 'Edit Account' : 'Add New Cloudflare Account'}</CardTitle>
-          <CardDescription>
-            {editMode 
-              ? 'Edit your Cloudflare API credentials for this account.' 
-              : 'Enter your Cloudflare API credentials to add a new account.'}
-          </CardDescription>
-        </CardHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Account Name</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="text" 
-                        placeholder="My Cloudflare Account" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+      {showAccountForm && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{editMode ? 'Edit Account' : 'Add New Cloudflare Account'}</CardTitle>
+            <CardDescription>
+              {editMode 
+                ? 'Edit your Cloudflare API credentials for this account.' 
+                : 'Enter your Cloudflare API credentials to add a new account.'}
+            </CardDescription>
+          </CardHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Account Name</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="text" 
+                          placeholder="My Cloudflare Account" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="apiKey"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>API Key</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="password" 
+                          placeholder="Cloudflare API Key" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email (Optional)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="email" 
+                          placeholder="Your Cloudflare email" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="accountId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Account ID</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="text" 
+                          placeholder="Cloudflare Account ID" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="zoneId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Zone ID</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="text" 
+                          placeholder="Cloudflare Zone ID" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
               
-              <FormField
-                control={form.control}
-                name="apiKey"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>API Key</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="password" 
-                        placeholder="Cloudflare API Key" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email (Optional)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="email" 
-                        placeholder="Your Cloudflare email" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="accountId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Account ID</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="text" 
-                        placeholder="Cloudflare Account ID" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="zoneId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Zone ID</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="text" 
-                        placeholder="Cloudflare Zone ID" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-            
-            <CardFooter className="flex justify-between">
-              {editMode ? (
-                <>
-                  <div>
-                    <Button 
-                      type="button" 
-                      variant="destructive" 
-                      onClick={handleDeleteAccount}
-                    >
-                      Delete Account
-                    </Button>
-                  </div>
-                  <div className="space-x-2">
-                    <Button 
-                      type="button" 
-                      variant="outline"
-                      onClick={handleCancelEdit}
-                    >
-                      Cancel
-                    </Button>
+              <CardFooter className="flex justify-between">
+                {editMode ? (
+                  <>
+                    <div>
+                      <Button 
+                        type="button" 
+                        variant="destructive" 
+                        onClick={handleDeleteAccount}
+                      >
+                        Delete Account
+                      </Button>
+                    </div>
+                    <div className="space-x-2">
+                      <Button 
+                        type="button" 
+                        variant="outline"
+                        onClick={handleCancelEdit}
+                      >
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={isLoading}>
+                        {isLoading ? 'Saving...' : 'Update Account'}
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      {accounts.length > 0 && (
+                        <Button 
+                          type="button" 
+                          variant="outline"
+                          onClick={handleCancelEdit}
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                    </div>
                     <Button type="submit" disabled={isLoading}>
-                      {isLoading ? 'Saving...' : 'Update Account'}
+                      {isLoading ? 'Testing connection...' : 'Add Account'}
                     </Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div></div>
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? 'Testing connection...' : 'Add Account'}
-                  </Button>
-                </>
-              )}
-            </CardFooter>
-          </form>
-        </Form>
-      </Card>
+                  </>
+                )}
+              </CardFooter>
+            </form>
+          </Form>
+        </Card>
+      )}
     </div>
   );
 };

@@ -21,11 +21,37 @@ const Sidebar: React.FC = () => {
   const location = useLocation();
   const [activeAccount, setActiveAccount] = useState<CloudflareCredentials | null>(null);
   
-  useEffect(() => {
-    // Update active account when location changes
+  // Function to update active account
+  const updateActiveAccount = () => {
     const account = getActiveAccount();
     setActiveAccount(account);
+  };
+  
+  useEffect(() => {
+    // Update active account on mount and location changes
+    updateActiveAccount();
   }, [location.pathname]);
+  
+  useEffect(() => {
+    // Listen for storage events to update when account switches
+    const handleStorageChange = () => {
+      updateActiveAccount();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Custom event for account switching within the same tab
+    const handleAccountSwitch = () => {
+      updateActiveAccount();
+    };
+    
+    window.addEventListener('accountSwitch', handleAccountSwitch);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('accountSwitch', handleAccountSwitch);
+    };
+  }, []);
   
   const hasCredentials = !!activeAccount;
   
@@ -45,8 +71,6 @@ const Sidebar: React.FC = () => {
         </div>
         <ThemeSwitcher />
       </div>
-      
-      
       
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
@@ -69,8 +93,6 @@ const Sidebar: React.FC = () => {
           ))}
         </ul>
       </nav>
-      
-      
       
       <div className="p-4 border-t border-border">
         {activeAccount ? (
