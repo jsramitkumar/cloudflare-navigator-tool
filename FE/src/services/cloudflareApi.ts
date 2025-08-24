@@ -113,6 +113,9 @@ export const getAccountsList = (): CloudflareCredentials[] | null => {
 // Set the active account
 export const setActiveAccount = (id: string): void => {
   localStorage.setItem(ACTIVE_ACCOUNT_KEY, id);
+  
+  // Emit custom event to notify components of account change
+  window.dispatchEvent(new CustomEvent('accountChanged', { detail: { accountId: id } }));
 };
 
 // Get the ID of the active account

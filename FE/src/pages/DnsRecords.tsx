@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
-import { dnsRecordsApi, DnsRecord, getCredentials } from '@/services/cloudflareApi';
+import { dnsRecordsApi, DnsRecord, getCredentials, getActiveAccountId } from '@/services/cloudflareApi';
 import AddDnsRecordDialog from '@/components/dns/AddDnsRecordDialog';
 import EditDnsRecordDialog from '@/components/dns/EditDnsRecordDialog';
 import DnsRecordList from '@/components/dns/DnsRecordList';
@@ -18,9 +18,37 @@ const DnsRecords: React.FC = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<DnsRecord | null>(null);
   const [filter, setFilter] = useState<string>('all');
+  const [activeAccountId, setActiveAccountId] = useState<string | null>(null);
   
-  // Load records on component mount
+  // Initialize active account ID and listen for changes
   useEffect(() => {
+    const currentAccountId = getActiveAccountId();
+    setActiveAccountId(currentAccountId);
+    
+    // Listen for account changes (custom event or window focus)
+    const handleAccountChange = () => {
+      const newAccountId = getActiveAccountId();
+      if (newAccountId !== activeAccountId) {
+        setActiveAccountId(newAccountId);
+      }
+    };
+    
+    // Listen for window focus (in case account was changed in another tab)
+    window.addEventListener('focus', handleAccountChange);
+    
+    // Listen for custom account change events
+    window.addEventListener('accountChanged', handleAccountChange);
+    
+    return () => {
+      window.removeEventListener('focus', handleAccountChange);
+      window.removeEventListener('accountChanged', handleAccountChange);
+    };
+  }, [activeAccountId]);
+  
+  // Load records when active account changes
+  useEffect(() => {
+    if (!activeAccountId) return;
+    
     const credentials = getCredentials();
     if (!credentials) {
       toast({
@@ -32,8 +60,10 @@ const DnsRecords: React.FC = () => {
       return;
     }
     
+    // Clear previous records and fetch new ones
+    setRecords([]);
     fetchRecords();
-  }, [navigate]);
+  }, [activeAccountId, navigate]);
   
   const fetchRecords = async () => {
     setIsLoading(true);
