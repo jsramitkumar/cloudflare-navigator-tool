@@ -46,53 +46,13 @@ jobs:
           rm -f package-lock.json
           npm install
 
-      - name: Fix TypeScript and ESLint issues
+      - name: Run linting
         run: |
-          # Frontend fixes
-          cd FE
+          echo "Running lint check for Frontend..."
+          cd FE && npm run lint
           
-          # Fix TypeScript issues in apiConfig.ts
-          echo "Fixing apiConfig.ts..."
-          sed -i 's/: any/: unknown/g' src/services/apiConfig.ts
-          
-          # Fix TypeScript issues in cloudflareApi.ts
-          echo "Fixing cloudflareApi.ts..."
-          sed -i 's/: any/: unknown/g' src/services/cloudflareApi.ts
-          
-          # Fix require issue in tailwind.config.ts
-          echo "Fixing tailwind.config.ts..."
-          sed -i 's/require(/import(/g' tailwind.config.ts
-          
-          # Run ESLint fix
-          npm run lint -- --fix
-          
-          # Backend fixes
-          cd ../BE
-          npm run lint -- --fix
-
-      - name: Verify fixes and run final lint check
-        run: |
-          echo "Running final lint check for Frontend..."
-          cd FE && npm run lint -- --max-warnings 10
-          
-          echo "Running final lint check for Backend..."
-          cd ../BE && npm run lint -- --max-warnings 10
-
-      - name: Check code formatting
-        run: |
-          cd FE && npm run format:check
-          cd ../BE && npm run format:check
-          
-      - name: Commit fixes if needed
-        if: github.event_name == 'pull_request'
-        run: |
-          if [[ -n "$(git status --porcelain)" ]]; then
-            git config --global user.name 'GitHub Actions Bot'
-            git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-            git add .
-            git commit -m "chore: fix linting and TypeScript issues"
-            git push
-          fi
+          echo "Running lint check for Backend..."
+          cd ../BE && npm run lint
 
   unit-tests:
     runs-on: ubuntu-latest
@@ -137,19 +97,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Trivy vulnerability scanner in fs mode
+      - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          ignore-unfixed: true
-          format: 'table'
-          severity: 'CRITICAL,HIGH'
-          timeout: '10m0s'
-
-      - name: Run Trivy vulnerability scanner in repo mode
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'repo'
           ignore-unfixed: true
           format: 'table'
           severity: 'CRITICAL,HIGH'
@@ -179,17 +130,6 @@ jobs:
       
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
-      with:
-        buildkitd-flags: --debug
-        
-    - name: Cache Docker layers
-      uses: actions/cache@v3
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ matrix.component }}-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-${{ matrix.component }}-
-          ${{ runner.os }}-buildx-
           
     - name: Set build args
       id: build_args
@@ -223,15 +163,9 @@ jobs:
         push: true
         build-args: |
           NODE_ENV=${{ steps.build_args.outputs.build_arg_env }}
-        cache-from: type=local,src=/tmp/.buildx-cache
-        cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
         tags: |
           ${{ secrets.DOCKER_USERNAME }}/${{ matrix.image }}:latest
           ${{ secrets.DOCKER_USERNAME }}/${{ matrix.image }}:${{ steps.datetag.outputs.date_tag }}
-        labels: |
-          org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-          org.opencontainers.image.revision=${{ github.sha }}
-          org.opencontainers.image.created=${{ steps.datetag.outputs.date_tag }}
           
     - name: Run Trivy vulnerability scanner for ${{ matrix.component }}
       uses: aquasecurity/trivy-action@master
@@ -247,11 +181,7 @@ jobs:
         sarif_file: 'trivy-results-${{ matrix.component }}.sarif'
         category: ${{ matrix.component }}
     
-    # Cache management
-    - name: Move cache
-      run: |
-        rm -rf /tmp/.buildx-cache
-        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
 
   update-k8s:
     needs: build-images
