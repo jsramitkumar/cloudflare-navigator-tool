@@ -11,6 +11,8 @@ import { RecordFormValues } from '@/components/dns/DnsRecordForm';
 import { DnsCleanupService } from '@/services/dnsCleanupService';
 import { Button } from '@/components/ui/button';
 import { Broom } from 'lucide-react';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
+import { AutoRefreshToggle } from '@/components/ui/auto-refresh-toggle';
 
 const DnsRecords: React.FC = () => {
   const navigate = useNavigate();
@@ -67,8 +69,10 @@ const DnsRecords: React.FC = () => {
     setRecords([]);
     fetchRecords();
   }, [activeAccountId, navigate]);
-  
+
   const fetchRecords = async () => {
+    if (!activeAccountId) return; // Don't fetch if no active account
+    
     setIsLoading(true);
     try {
       const data = await dnsRecordsApi.listRecords();
@@ -84,6 +88,13 @@ const DnsRecords: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  // Auto-refresh functionality
+  const autoRefresh = useAutoRefresh({
+    interval: 30000, // 30 seconds
+    enabled: false, // Start disabled
+    onRefresh: fetchRecords
+  });
   
   const onSubmit = async (data: RecordFormValues) => {
     try {
@@ -202,9 +213,23 @@ const DnsRecords: React.FC = () => {
         onSearchChange={setSearchTerm}
         filter={filter}
         onFilterChange={setFilter}
-        onRefresh={fetchRecords}
+        onRefresh={autoRefresh.manualRefresh}
         isLoading={isLoading}
       />
+
+      <div className="flex justify-between items-center mb-4">
+        <span className="text-sm text-muted-foreground">
+          {filteredRecords.length} record{filteredRecords.length !== 1 ? 's' : ''} found
+        </span>
+        <AutoRefreshToggle
+          isEnabled={autoRefresh.isEnabled}
+          lastRefresh={autoRefresh.lastRefresh}
+          onToggle={autoRefresh.toggleAutoRefresh}
+          onManualRefresh={autoRefresh.manualRefresh}
+          isLoading={isLoading}
+          interval={30000}
+        />
+      </div>
       
       <DnsRecordList 
         records={filteredRecords}

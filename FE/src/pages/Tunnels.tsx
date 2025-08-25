@@ -54,6 +54,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from '@/components/ui/use-toast';
 import { tunnelsApi, CloudflareTunnel, getCredentials } from '@/services/cloudflareApi';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
+import { AutoRefreshToggle } from '@/components/ui/auto-refresh-toggle';
 import { Badge } from '@/components/ui/badge';
 import TunnelDetails from '@/components/tunnels/TunnelDetails';
 
@@ -111,6 +113,13 @@ const Tunnels: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  // Auto-refresh functionality
+  const autoRefresh = useAutoRefresh({
+    interval: 45000, // 45 seconds (longer interval for tunnels)
+    enabled: false, // Start disabled
+    onRefresh: fetchTunnels
+  });
   
   const onSubmit = async (data: TunnelFormValues) => {
     try {
@@ -195,41 +204,51 @@ const Tunnels: React.FC = () => {
     <div className="container">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Cloudflare Tunnels</h1>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" /> Create Tunnel
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create Tunnel</DialogTitle>
-              <DialogDescription>
-                Create a new Cloudflare Tunnel to expose your local services to the internet.
-              </DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tunnel Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., my-app-tunnel" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <DialogFooter>
-                  <Button type="submit">Create Tunnel</Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-4">
+          <AutoRefreshToggle
+            isEnabled={autoRefresh.isEnabled}
+            lastRefresh={autoRefresh.lastRefresh}
+            onToggle={autoRefresh.toggleAutoRefresh}
+            onManualRefresh={autoRefresh.manualRefresh}
+            isLoading={isLoading}
+            interval={45000}
+          />
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" /> Create Tunnel
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Tunnel</DialogTitle>
+                <DialogDescription>
+                  Create a new Cloudflare Tunnel to expose your local services to the internet.
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tunnel Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., my-app-tunnel" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <DialogFooter>
+                    <Button type="submit">Create Tunnel</Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
       
       <div className="flex justify-between mb-4 gap-4">
@@ -242,13 +261,9 @@ const Tunnels: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button 
-          variant="outline" 
-          onClick={fetchTunnels}
-          disabled={isLoading}
-        >
-          Refresh
-        </Button>
+        <span className="text-sm text-muted-foreground flex items-center">
+          {filteredTunnels.length} tunnel{filteredTunnels.length !== 1 ? 's' : ''} found
+        </span>
       </div>
       
       <div className="border rounded-md">
