@@ -8,6 +8,9 @@ import EditDnsRecordDialog from '@/components/dns/EditDnsRecordDialog';
 import DnsRecordList from '@/components/dns/DnsRecordList';
 import DnsRecordFilter from '@/components/dns/DnsRecordFilter';
 import { RecordFormValues } from '@/components/dns/DnsRecordForm';
+import { DnsCleanupService } from '@/services/dnsCleanupService';
+import { Button } from '@/components/ui/button';
+import { Broom } from 'lucide-react';
 
 const DnsRecords: React.FC = () => {
   const navigate = useNavigate();
@@ -177,11 +180,21 @@ const DnsRecords: React.FC = () => {
     <div className="container">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">DNS Records</h1>
-        <AddDnsRecordDialog 
-          isOpen={isAddDialogOpen} 
-          onOpenChange={setIsAddDialogOpen} 
-          onSubmit={onSubmit} 
-        />
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => DnsCleanupService.performFullCleanup()}
+            title="Clean up orphaned DNS records and check tunnel synchronization"
+          >
+            <Broom className="h-4 w-4 mr-2" />
+            Cleanup
+          </Button>
+          <AddDnsRecordDialog 
+            isOpen={isAddDialogOpen} 
+            onOpenChange={setIsAddDialogOpen} 
+            onSubmit={onSubmit} 
+          />
+        </div>
       </div>
       
       <DnsRecordFilter 

@@ -22,6 +22,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { DnsRecord } from '@/services/cloudflareApi';
+import { DnsCleanupService } from '@/services/dnsCleanupService';
+import { toast } from '@/components/ui/use-toast';
 
 interface DnsRecordListProps {
   records: DnsRecord[];
@@ -98,7 +100,21 @@ const DnsRecordList: React.FC<DnsRecordListProps> = ({
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => onDelete(record.id)}>
+                        <AlertDialogAction onClick={async () => {
+                          const result = await DnsCleanupService.safeDeleteDnsRecord(record.id);
+                          if (result.success) {
+                            if (result.warnings.length > 0) {
+                              result.warnings.forEach(warning => {
+                                toast({
+                                  title: "Warning",
+                                  description: warning,
+                                  variant: "destructive",
+                                });
+                              });
+                            }
+                            onDelete(record.id);
+                          }
+                        }}>
                           Delete
                         </AlertDialogAction>
                       </AlertDialogFooter>
