@@ -1,5 +1,13 @@
 {
-  "dependencies": {
-    "date-fns": "^4.1.0"
+  "name": "cloudflare-navigator",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "cd FE && npm run dev",
+    "build": "cd FE && npm run build", 
+    "build:dev": "cd FE && npm run build:dev",
+    "preview": "cd FE && npm run preview",
+    "backend:start": "cd BE && npm start",
+    "install:all": "cd FE && npm install && cd ../BE && npm install"
   }
 }
