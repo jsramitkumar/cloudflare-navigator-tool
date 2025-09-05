@@ -11,24 +11,12 @@ export default defineConfig(({ mode }) => ({
   ].filter(Boolean),
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./FE/src"),
+      "@": path.resolve(__dirname, "./src"),
     },
-  },
-  root: "./FE",
-  publicDir: "./public",
-  build: {
-    outDir: "../dist",
-    emptyOutDir: true,
   },
   server: {
     port: 8080,
     host: "0.0.0.0",
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-      }
-    },
     cors: true
   },
   preview: {
