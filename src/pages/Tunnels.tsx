@@ -9,10 +9,10 @@ import {
   Search, 
   Trash2,
   ExternalLink,
-  CheckCircle,
+  CheckCircle2,
   XCircle,
   Clock,
-  Network,
+  Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -168,13 +168,13 @@ const Tunnels: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch(status.toLowerCase()) {
       case 'active':
-        return <Badge className="bg-green-600"><CheckCircle className="h-3 w-3 mr-1" /> Active</Badge>;
+        return <Badge variant="default" className="bg-green-500 hover:bg-green-600"><CheckCircle2 className="h-3 w-3 mr-1" /> Active</Badge>;
       case 'inactive':
-        return <Badge className="bg-gray-500"><XCircle className="h-3 w-3 mr-1" /> Inactive</Badge>;
+        return <Badge variant="secondary"><XCircle className="h-3 w-3 mr-1" /> Inactive</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-500"><Clock className="h-3 w-3 mr-1" /> Pending</Badge>;
+        return <Badge className="bg-amber-500 hover:bg-amber-600"><Clock className="h-3 w-3 mr-1" /> Pending</Badge>;
       default:
-        return <Badge className="bg-blue-500">{status}</Badge>;
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
   
@@ -300,8 +300,9 @@ const Tunnels: React.FC = () => {
                       variant="ghost" 
                       size="icon"
                       onClick={() => setSelectedTunnelId(tunnel.id)}
+                      title="View tunnel details"
                     >
-                      <Network className="h-4 w-4" />
+                      <Zap className="h-4 w-4" />
                     </Button>
                     <Button 
                       variant="ghost" 

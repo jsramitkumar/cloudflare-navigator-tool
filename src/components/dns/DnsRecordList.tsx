@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, EyeOff, Eye, Trash2 } from 'lucide-react';
+import { Edit2, EyeOff, Eye, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -83,7 +83,7 @@ const DnsRecordList: React.FC<DnsRecordListProps> = ({
                     size="icon"
                     onClick={() => onEdit(record)}
                   >
-                    <Edit className="h-4 w-4" />
+                    <Edit2 className="h-4 w-4" />
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>

@@ -10,7 +10,7 @@ import DnsRecordFilter from '@/components/dns/DnsRecordFilter';
 import { RecordFormValues } from '@/components/dns/DnsRecordForm';
 import { DnsCleanupService } from '@/services/dnsCleanupService';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Brush } from 'lucide-react';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { AutoRefreshToggle } from '@/components/ui/auto-refresh-toggle';
 
@@ -197,7 +197,7 @@ const DnsRecords: React.FC = () => {
             onClick={() => DnsCleanupService.performFullCleanup()}
             title="Clean up orphaned DNS records and check tunnel synchronization"
           >
-            <Trash2 className="h-4 w-4 mr-2" />
+            <Brush className="h-4 w-4 mr-2" />
             Cleanup
           </Button>
           <AddDnsRecordDialog 

@@ -3,13 +3,12 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { 
-  Home, 
+  LayoutDashboard, 
   Globe, 
-  Network, 
+  Zap, 
   Settings, 
-  LogOut,
   Users,
-  Cloud
+  CloudDrizzle
 } from 'lucide-react';
 import { 
   getActiveAccount, 
@@ -56,9 +55,9 @@ const Sidebar: React.FC = () => {
   const hasCredentials = !!activeAccount;
   
   const navItems = [
-    { icon: Home, label: 'Dashboard', path: '/', disabled: false },
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/', disabled: false },
     { icon: Globe, label: 'DNS Records', path: '/dns', disabled: !hasCredentials },
-    { icon: Network, label: 'Tunnels', path: '/tunnels', disabled: !hasCredentials },
+    { icon: Zap, label: 'Tunnels', path: '/tunnels', disabled: !hasCredentials },
     { icon: Settings, label: 'Settings', path: '/settings', disabled: false },
   ];
   
@@ -66,7 +65,7 @@ const Sidebar: React.FC = () => {
     <div className="w-64 h-full bg-card border-r border-border flex flex-col">
       <div className="p-4 border-b border-border flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <Cloud className="h-6 w-6 text-primary" />
+          <CloudDrizzle className="h-6 w-6 text-primary" />
           <h1 className="text-lg font-bold">Cloudflare DNS Manager</h1>
         </div>
         <ThemeSwitcher />
