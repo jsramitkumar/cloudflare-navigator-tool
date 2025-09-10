@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: BE/Dockerfile
+      target: base
+    ports:
+      - "${BACKEND_PORT:-3001}:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - HOST=0.0.0.0
+      - API_URL=${API_URL:-https://api.cloudflare.com/client/v4}
+    volumes:
+      - ./BE:/app
+      - ./server:/app
+      - /app/node_modules
+    networks:
+      - app-network
+    command: ["npm", "run", "dev"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/cloudflare/test-connection', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: FE/Dockerfile
+      target: builder
+    ports:
+      - "${FRONTEND_PORT:-8080}:8080"
+    environment:
+      - NODE_ENV=development
+      - VITE_BACKEND_URL=http://localhost:${BACKEND_PORT:-3001}
+    volumes:
+      - ./FE:/app
+      - /app/node_modules
+    networks:
+      - app-network
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "8080"]
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
