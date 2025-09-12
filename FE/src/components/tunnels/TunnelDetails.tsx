@@ -358,24 +358,6 @@ const TunnelDetails: React.FC<TunnelDetailsProps> = ({ tunnelId, onBack }) => {
     }
   };
   
-  // New function to delete entire tunnel configuration
-  const handleDeleteTunnelConfig = async () => {
-    try {
-      await tunnelsApi.deleteTunnelConfig(tunnelId);
-      toast({
-        title: "Configuration deleted",
-        description: "The tunnel configuration has been deleted successfully.",
-      });
-      onBack(); // Return to tunnels list
-    } catch (error) {
-      console.error('Failed to delete tunnel configuration:', error);
-      toast({
-        title: "Failed to delete configuration",
-        description: "There was an error deleting the tunnel configuration.",
-        variant: "destructive",
-      });
-    }
-  };
   
   return (
     <div className="space-y-6">

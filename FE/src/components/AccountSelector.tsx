@@ -2,7 +2,7 @@
 import React from 'react';
 import { CloudflareCredentials } from '@/services/cloudflareApi';
 import { Button } from '@/components/ui/button';
-import { Check, Edit, Plus } from 'lucide-react';
+import { Check, Plus } from 'lucide-react';
 import {
   Select,
   SelectContent,

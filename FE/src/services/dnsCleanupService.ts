@@ -83,11 +83,8 @@ export class DnsCleanupService {
         tunnelsApi.listTunnels()
       ]);
 
-      // Create a map of existing DNS record names
-      const dnsRecordNames = new Set(dnsRecords.map(record => {
-        // Handle both full domain names and subdomain prefixes
-        return record.name;
-      }));
+      // Create a map of existing DNS record names for reference
+      const dnsRecordSet = new Set(dnsRecords.map(record => record.name));
 
       const orphanedResults: { tunnel: CloudflareTunnel; orphanedHostnames: string[] }[] = [];
 

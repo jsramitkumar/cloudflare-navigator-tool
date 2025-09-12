@@ -102,15 +102,14 @@ const TunnelIngressForm: React.FC<TunnelIngressFormProps> = ({
       ? `${values.subdomain}.${values.domain}` 
       : values.domain;
 
-    // Transform the form values back to the TunnelIngress format
-    const formattedValues: Partial<TunnelIngress> = {
-      hostname,
+    // Transform the form values back to the required format
+    const formattedValues = {
+      domain: values.domain,
       service: values.service,
+      noTLSVerify: values.noTLSVerify,
       path: values.path || undefined,
-      originRequest: {
-        noTLSVerify: values.noTLSVerify,
-        originServerName: values.originServerName || undefined,
-      },
+      subdomain: values.subdomain || undefined,
+      originServerName: values.originServerName || undefined,
     };
 
     onSubmit(formattedValues);

@@ -23,7 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { DialogFooter } from '@/components/ui/dialog';
-import { DnsRecord } from '@/services/cloudflareApi';
+
 
 export const recordFormSchema = z.object({
   type: z.string().min(1, 'Record type is required'),
