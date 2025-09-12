@@ -8,7 +8,7 @@ This project is structured as two independent microservices:
 
 ### 🎨 Frontend Microservice (`FE/`)
 - **Technology**: React 18 + TypeScript + Vite
-- **Styling**: Tailwind CSS + Radix UI
+- **Styling**: Tailwind CSS + Radix
 - **State**: TanStack Query + React Hook Form
 - **Port**: 8080 (development)
 
