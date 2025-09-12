@@ -10,7 +10,7 @@ This project is structured as two independent microservices:
 - **Technology**: React 18 + TypeScript + Vite
 - **Styling**: Tailwind CSS + Radix UI
 - **State**: TanStack Query + React Hook Form
-- **Port**: 5173 (development)
+- **Port**: 8080 (development)
 
 ### 🚀 Backend Microservice (`BE/`)
 - **Technology**: Node.js + Express.js
