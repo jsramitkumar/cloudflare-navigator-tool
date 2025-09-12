@@ -85,6 +85,7 @@ export class DnsCleanupService {
 
       // Create a map of existing DNS record names for reference
       const dnsRecordSet = new Set(dnsRecords.map(record => record.name));
+      console.log("DNS Records found:", Array.from(dnsRecordSet));
 
       const orphanedResults: { tunnel: CloudflareTunnel; orphanedHostnames: string[] }[] = [];
 

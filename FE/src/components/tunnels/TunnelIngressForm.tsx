@@ -97,10 +97,6 @@ const TunnelIngressForm: React.FC<TunnelIngressFormProps> = ({
   });
 
   const handleSubmit = (values: TunnelIngressFormValues) => {
-    // Construct hostname from domain and subdomain
-    const hostname = values.subdomain 
-      ? `${values.subdomain}.${values.domain}` 
-      : values.domain;
 
     // Transform the form values back to the required format
     const formattedValues = {
