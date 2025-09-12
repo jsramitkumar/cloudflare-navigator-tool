@@ -1,0 +1,80 @@
+# nginx-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: cdm
+data:
+  default.conf: |
+    # Upstream for CDM UI
+    upstream cdm_ui {
+        server cdm-ui-service.cdm.svc.cluster.local:80;
+    }
+    
+    # Upstream for CDM Server
+    upstream cdm_server {
+        server cdm-server-service.cdm.svc.cluster.local:80;
+    }
+    
+    # HTTP to HTTPS redirect
+    server {
+        listen 80;
+        server_name cdm-ui.yourdomain.com cdm-server.yourdomain.com;
+        return 301 https://$server_name$request_uri;
+    }
+    
+    # HTTPS server for CDM UI
+    server {
+        listen 443 ssl http2;
+        server_name cdm-ui.yourdomain.com;
+        
+        ssl_certificate /etc/ssl/certs/tls.crt;
+        ssl_certificate_key /etc/ssl/certs/tls.key;
+        include /etc/nginx/ssl/ssl.conf;
+        
+        location / {
+            proxy_pass http://cdm_ui;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Port $server_port;
+        }
+    }
+    
+    # HTTPS server for CDM Server API
+    server {
+        listen 443 ssl http2;
+        server_name cdm-server.yourdomain.com;
+        
+        ssl_certificate /etc/ssl/certs/tls.crt;
+        ssl_certificate_key /etc/ssl/certs/tls.key;
+        include /etc/nginx/ssl/ssl.conf;
+        
+        location / {
+            proxy_pass http://cdm_server;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Port $server_port;
+            
+            # CORS headers for API
+            add_header Access-Control-Allow-Origin "https://cdm-ui.yourdomain.com" always;
+            add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
+            add_header Access-Control-Allow-Headers "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization" always;
+            add_header Access-Control-Expose-Headers "Content-Length,Content-Range" always;
+            
+            if ($request_method = 'OPTIONS') {
+                add_header Access-Control-Allow-Origin "https://cdm-ui.yourdomain.com";
+                add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS";
+                add_header Access-Control-Allow-Headers "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization";
+                add_header Access-Control-Max-Age 1728000;
+                add_header Content-Type 'text/plain; charset=utf-8';
+                add_header Content-Length 0;
+                return 204;
+            }
+        }
+    }

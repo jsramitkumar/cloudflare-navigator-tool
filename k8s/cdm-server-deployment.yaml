@@ -1,0 +1,55 @@
+# cdm-server-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cdm-server
+  namespace: cdm
+  labels:
+    app: cdm-server
+    component: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cdm-server
+  template:
+    metadata:
+      labels:
+        app: cdm-server
+        component: backend
+    spec:
+      containers:
+      - name: cdm-server
+        image: jsrankit/cdm-server:latest
+        ports:
+        - containerPort: 3001
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3001"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health  # Adjust based on your server's health endpoint
+            port: 3001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health  # Adjust based on your server's health endpoint
+            port: 3001
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        imagePullPolicy: Always

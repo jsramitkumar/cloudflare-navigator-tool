@@ -1,0 +1,82 @@
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+
+---
+# nginx-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-proxy-service
+  namespace: cdm
+  labels:
+    app: nginx-proxy
+    component: proxy
+spec:
+  selector:
+    app: nginx-proxy
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 443
+    protocol: TCP
+  type: LoadBalancer  # or NodePort for K3s
+
+---
+# ingress.yaml (Alternative approach using Ingress Controller)
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: cdm-ingress
+#   namespace: cdm
+#   annotations:
+#     kubernetes.io/ingress.class: "nginx"
+#     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+#     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+#     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+# spec:
+#   tls:
+#   - hosts:
+#     - cdm-ui.yourdomain.com
+#     - cdm-server.yourdomain.com
+#     secretName: cdm-tls-cert
+#   rules:
+#   - host: cdm-ui.yourdomain.com
+#     http:
+#       paths:
+#       - path: /
+#         pathType: Prefix
+#         backend:
+#           service:
+#             name: cdm-ui-service
+#             port:
+#               number: 80
+#   - host: cdm-server.endusercompute.in
+#     http:
+#       paths:
+#       - path: /
+#         pathType: Prefix
+#         backend:
+#           service:
+#             name: cdm-server-service
+#             port:
+#               number: 80
+
+---

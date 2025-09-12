@@ -1,0 +1,18 @@
+# cdm-server-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: cdm-server-service
+  namespace: cdm
+  labels:
+    app: cdm-server
+    component: backend
+spec:
+  selector:
+    app: cdm-server
+  ports:
+  - name: http
+    port: 80
+    targetPort: 3001
+    protocol: TCP
+  type: ClusterIP
