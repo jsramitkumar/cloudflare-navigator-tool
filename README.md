@@ -1,90 +1,67 @@
 # Cloudflare Navigator
 
-## Project Structure
+A microservices-based application for managing Cloudflare DNS records and tunnels.
 
-This project is now organized with separate frontend and backend directories to avoid npm installation conflicts:
+## Architecture
 
-```
-├── FE/                 # Frontend (React + Vite)
-│   ├── package.json    # Frontend dependencies only
-│   └── src/           # All React components and assets
-├── BE/                 # Backend (Express.js)
-│   ├── package.json    # Backend dependencies only
-│   └── index.js       # Express server
-└── docker-compose.yml  # Docker configuration
-```
+This project is structured as two independent microservices:
 
-## Local Development Setup
+### 🎨 Frontend Microservice (`FE/`)
+- **Technology**: React 18 + TypeScript + Vite
+- **Styling**: Tailwind CSS + Radix UI
+- **State**: TanStack Query + React Hook Form
+- **Port**: 5173 (development)
 
-### Option 1: Using Docker (Recommended)
+### 🚀 Backend Microservice (`BE/`)
+- **Technology**: Node.js + Express.js
+- **Purpose**: Cloudflare API proxy
+- **Port**: 3001
+
+## Quick Start
+
+### Frontend
 ```bash
-docker-compose up --build
-```
-
-### Option 2: Manual Setup
-
-1. **Install Backend Dependencies:**
-```bash
-cd BE
+cd FE/
 npm install
-```
-
-2. **Install Frontend Dependencies:**
-```bash
-cd FE
-npm install
-```
-
-3. **Start Backend (in one terminal):**
-```bash
-cd BE
 npm run dev
 ```
 
-4. **Start Frontend (in another terminal):**
+### Backend
 ```bash
-cd FE
+cd BE/
+npm install
 npm run dev
 ```
 
-## Migration Steps
+## Features
 
-To migrate your current setup to this new structure:
+- **DNS Management**: Full CRUD operations for DNS records
+- **Tunnel Management**: Cloudflare tunnel configuration
+- **Multi-Account**: Support for multiple Cloudflare accounts
+- **Real-time Updates**: Auto-refresh capabilities
+- **Responsive Design**: Mobile-first approach
+- **Theme Support**: Dark/Light mode toggle
 
-1. **Move frontend files to FE directory:**
-```bash
-# Move all source files
-mv src/ FE/
-mv public/ FE/
-mv index.html FE/
-mv vite.config.ts FE/
-mv tailwind.config.ts FE/
-mv eslint.config.js FE/
+## Environment Configuration
+
+### Frontend (`FE/.env.local`)
+```env
+VITE_BACKEND_URL=http://localhost:3001
 ```
 
-2. **Copy configuration files:**
-```bash
-# Copy to both FE and root (for compatibility)
-cp tsconfig.json FE/
-cp tsconfig.node.json FE/
-cp postcss.config.js FE/
-cp components.json FE/
+### Backend (`BE/.env`)
+```env
+NODE_ENV=development
+PORT=3001
+API_URL=https://api.cloudflare.com/client/v4
 ```
 
-3. **Install dependencies in new structure:**
-```bash
-cd FE && npm install
-cd ../BE && npm install
-```
+## Microservice Independence
 
-## Environment Variables
+Each service can be:
+- Developed independently
+- Deployed separately
+- Scaled individually
+- Tested in isolation
 
-Set these environment variables for the backend:
-- `PORT` - Backend port (default: 3001)
-- `API_URL` - Cloudflare API URL (default: https://api.cloudflare.com/client/v4)
-
-## Docker
-
-The Docker setup automatically handles the separated structure:
-- Frontend builds to static files served by nginx on port 8080
-- Backend runs Express.js on port 3001
+For detailed setup instructions, see individual README files in `FE/` and `BE/` directories.
