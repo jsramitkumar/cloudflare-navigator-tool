@@ -1,0 +1,11 @@
+{
+  "name": "cloudflare-navigator",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "cd FE && npm run dev",
+    "build": "cd FE && npm run build",
+    "preview": "cd FE && npm run preview",
+    "lint": "cd FE && npm run lint"
+  }
+}
