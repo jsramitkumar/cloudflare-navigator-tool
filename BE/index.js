@@ -1,7 +1,6 @@
-const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
-const path = require('path');
+import express from 'express';
+import cors from 'cors';
+import axios from 'axios';
 const app = express();
 const now = new Date();
 const PORT = process.env.PORT || 3001;
@@ -292,4 +291,4 @@ app.listen(PORT, HOST, () => {
   console.log(`API URL: ${API_URL}`);
 });
 
-module.exports = app;
+export default app;
