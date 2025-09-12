@@ -3,7 +3,10 @@ name: Build and Push Docker Images
 on:
   push:
     branches:
-      - main   # Trigger on pushes to main (adjust if needed)
+      - main   # runs when code is merged/pushed to main
+  pull_request:
+    branches:
+      - main   # also runs for PRs targeting main
 
 jobs:
   docker:
