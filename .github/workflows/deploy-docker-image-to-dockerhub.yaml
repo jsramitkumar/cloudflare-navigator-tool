@@ -7,6 +7,7 @@ on:
 
 env:
   REGISTRY: docker.io
+  KEEP_IMAGES: 3  # Keep only the latest 3 images
 
 jobs:
   # Job 1: Setup and validation
@@ -192,52 +193,97 @@ jobs:
           docker push jsrankit/cdm-server:${{ needs.setup.outputs.timestamp_tag }}
           docker push jsrankit/cdm-server:latest
 
-  # Job 8: Security Scanning (optional)
-  security-scan:
+  # Job 8: Cleanup old Docker Hub images
+  cleanup-dockerhub:
     runs-on: ubuntu-latest
     needs: [setup, push-frontend, push-backend]
     if: needs.setup.outputs.should_push == 'true' && always()
     strategy:
       matrix:
-        image: [jsrankit/cdm-ui, jsrankit/cdm-server]
-        component: [frontend, backend]
+        repository: [jsrankit/cdm-ui, jsrankit/cdm-server]
     steps:
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ matrix.image }}:latest
-          format: 'sarif'
-          output: 'trivy-${{ matrix.component }}-results.sarif'
-      
-      - name: Upload scan results
-        uses: github/codeql-action/upload-sarif@v2
-        if: always()
-        with:
-          sarif_file: 'trivy-${{ matrix.component }}-results.sarif'
-
-  # Job 9: Cleanup
-  cleanup:
-    runs-on: ubuntu-latest
-    needs: [push-frontend, push-backend]
-    if: always()
-    steps:
-      - name: Delete artifacts
+      - name: Cleanup old Docker Hub tags
         uses: actions/github-script@v7
         with:
           script: |
-            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              run_id: context.runId,
-            });
+            const repository = '${{ matrix.repository }}';
+            const keepCount = parseInt('${{ env.KEEP_IMAGES }}');
+            const username = '${{ secrets.DOCKER_USERNAME }}';
+            const token = '${{ secrets.DOCKER_PASSWORD }}';
             
-            for (const artifact of artifacts.data.artifacts) {
-              if (artifact.name.includes('-image')) {
-                await github.rest.actions.deleteArtifact({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  artifact_id: artifact.id,
-                });
-                console.log(`Deleted artifact: ${artifact.name}`);
+            console.log(`Cleaning up ${repository}, keeping ${keepCount} latest images`);
+            
+            try {
+              // Get Docker Hub token
+              const tokenResponse = await fetch('https://hub.docker.com/v2/users/login', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  username: username,
+                  password: token
+                })
+              });
+              
+              if (!tokenResponse.ok) {
+                throw new Error(`Failed to authenticate with Docker Hub: ${tokenResponse.status}`);
               }
+              
+              const tokenData = await tokenResponse.json();
+              const hubToken = tokenData.token;
+              
+              // Get list of tags
+              const tagsResponse = await fetch(`https://hub.docker.com/v2/repositories/${repository}/tags?page_size=100`, {
+                headers: {
+                  'Authorization': `Bearer ${hubToken}`
+                }
+              });
+              
+              if (!tagsResponse.ok) {
+                throw new Error(`Failed to fetch tags: ${tagsResponse.status}`);
+              }
+              
+              const tagsData = await tagsResponse.json();
+              const allTags = tagsData.results || [];
+              
+              console.log(`Found ${allTags.length} total tags`);
+              
+              // Filter out 'latest' tag and sort by last_updated (newest first)
+              const timestampTags = allTags
+                .filter(tag => tag.name !== 'latest' && /^\d{12}$/.test(tag.name))
+                .sort((a, b) => new Date(b.last_updated) - new Date(a.last_updated));
+              
+              console.log(`Found ${timestampTags.length} timestamp tags`);
+              
+              // Keep only the latest N images, delete the rest
+              const tagsToDelete = timestampTags.slice(keepCount);
+              
+              console.log(`Will delete ${tagsToDelete.length} old tags`);
+              
+              for (const tag of tagsToDelete) {
+                console.log(`Deleting tag: ${tag.name} (${tag.last_updated})`);
+                
+                const deleteResponse = await fetch(`https://hub.docker.com/v2/repositories/${repository}/tags/${tag.name}/`, {
+                  method: 'DELETE',
+                  headers: {
+                    'Authorization': `Bearer ${hubToken}`
+                  }
+                });
+                
+                if (deleteResponse.ok) {
+                  console.log(`✅ Successfully deleted ${tag.name}`);
+                } else {
+                  console.log(`❌ Failed to delete ${tag.name}: ${deleteResponse.status}`);
+                }
+                
+                // Add small delay to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+              
+              console.log(`Cleanup completed for ${repository}`);
+              
+            } catch (error) {
+              console.error(`Error cleaning up ${repository}:`, error);
+              // Don't fail the workflow for cleanup errors
             }
