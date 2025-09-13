@@ -1,4 +1,4 @@
-name: Build & Push FE + BE
+name: Build & Push Multi-Arch FE + BE
 on:
   push:
     branches: ['main', 'develop']
@@ -33,170 +33,121 @@ jobs:
         id: timestamp
         run: echo "tag=$(date +'%m%d%Y%H%M')" >> $GITHUB_OUTPUT
 
-  # Job 2: Build Frontend
-  build-frontend:
+  # Job 2: Build and Push Frontend (Multi-Architecture)
+  build-push-frontend:
     runs-on: ubuntu-latest
     needs: setup
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+      
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
       
-      - name: Build Frontend image
+      - name: Log in to Docker Hub
+        if: needs.setup.outputs.should_push == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Build and push Frontend (multi-arch)
         uses: docker/build-push-action@v5
         with:
           context: ./FE
-          tags: jsrankit/cdm-ui:${{ needs.setup.outputs.timestamp_tag }}
-          load: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            jsrankit/cdm-ui:${{ needs.setup.outputs.timestamp_tag }}
+            jsrankit/cdm-ui:latest
+          push: ${{ needs.setup.outputs.should_push == 'true' }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
-      
-      - name: Save Frontend image
-        if: needs.setup.outputs.should_push == 'true'
-        run: docker save jsrankit/cdm-ui:${{ needs.setup.outputs.timestamp_tag }} | gzip > frontend-image.tar.gz
-      
-      - name: Upload Frontend artifact
-        if: needs.setup.outputs.should_push == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-image
-          path: frontend-image.tar.gz
-          retention-days: 1
+          provenance: false
+          sbom: false
 
-  # Job 3: Build Backend
-  build-backend:
+  # Job 3: Build and Push Backend (Multi-Architecture)
+  build-push-backend:
     runs-on: ubuntu-latest
     needs: setup
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+      
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
       
-      - name: Build Backend image
+      - name: Log in to Docker Hub
+        if: needs.setup.outputs.should_push == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Build and push Backend (multi-arch)
         uses: docker/build-push-action@v5
         with:
           context: ./BE
-          tags: jsrankit/cdm-server:${{ needs.setup.outputs.timestamp_tag }}
-          load: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            jsrankit/cdm-server:${{ needs.setup.outputs.timestamp_tag }}
+            jsrankit/cdm-server:latest
+          push: ${{ needs.setup.outputs.should_push == 'true' }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
-      
-      - name: Save Backend image
-        if: needs.setup.outputs.should_push == 'true'
-        run: docker save jsrankit/cdm-server:${{ needs.setup.outputs.timestamp_tag }} | gzip > backend-image.tar.gz
-      
-      - name: Upload Backend artifact
-        if: needs.setup.outputs.should_push == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-image
-          path: backend-image.tar.gz
-          retention-days: 1
+          provenance: false
+          sbom: false
 
-  # Job 4: Test Frontend (optional)
-  test-frontend:
+  # Job 4: Test Multi-Arch Images (Optional)
+  test-images:
     runs-on: ubuntu-latest
-    needs: [setup, build-frontend]
-    if: always() && needs.build-frontend.result == 'success'
+    needs: [setup, build-push-frontend, build-push-backend]
+    if: needs.setup.outputs.should_push == 'true' && always()
+    strategy:
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+        image: 
+          - { name: jsrankit/cdm-ui, port: 8080 }
+          - { name: jsrankit/cdm-server, port: 3001 }
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Download Frontend artifact
-        if: needs.setup.outputs.should_push == 'true'
-        uses: actions/download-artifact@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
         with:
-          name: frontend-image
+          platforms: ${{ matrix.platform }}
       
-      - name: Load and test Frontend image
-        if: needs.setup.outputs.should_push == 'true'
+      - name: Test image on ${{ matrix.platform }}
         run: |
-          docker load < frontend-image.tar.gz
-          # Add your frontend tests here
-          # docker run --rm jsrankit/cdm-ui:${{ needs.setup.outputs.timestamp_tag }} npm test
-          echo "Frontend tests would run here"
+          echo "Testing ${{ matrix.image.name }}:${{ needs.setup.outputs.timestamp_tag }} on ${{ matrix.platform }}"
+          # Pull and inspect the multi-arch image
+          docker pull --platform=${{ matrix.platform }} ${{ matrix.image.name }}:${{ needs.setup.outputs.timestamp_tag }}
+          docker inspect ${{ matrix.image.name }}:${{ needs.setup.outputs.timestamp_tag }}
+          
+          # Quick container start test (modify as needed for your apps)
+          # docker run --rm --platform=${{ matrix.platform }} -d --name test-container -p ${{ matrix.image.port }}:${{ matrix.image.port }} ${{ matrix.image.name }}:${{ needs.setup.outputs.timestamp_tag }}
+          # sleep 10
+          # docker stop test-container || true
+          
+          echo "✅ Image test completed for ${{ matrix.platform }}"
 
-  # Job 5: Test Backend (optional)
-  test-backend:
-    runs-on: ubuntu-latest
-    needs: [setup, build-backend]
-    if: always() && needs.build-backend.result == 'success'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Download Backend artifact
-        if: needs.setup.outputs.should_push == 'true'
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-image
-      
-      - name: Load and test Backend image
-        if: needs.setup.outputs.should_push == 'true'
-        run: |
-          docker load < backend-image.tar.gz
-          # Add your backend tests here
-          # docker run --rm jsrankit/cdm-server:${{ needs.setup.outputs.timestamp_tag }} npm test
-          echo "Backend tests would run here"
-
-  # Job 6: Push Frontend to Registry
-  push-frontend:
-    runs-on: ubuntu-latest
-    needs: [setup, build-frontend, test-frontend]
-    if: needs.setup.outputs.should_push == 'true' && (always() && needs.build-frontend.result == 'success')
-    steps:
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      
-      - name: Download Frontend artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-image
-      
-      - name: Load and push Frontend image
-        run: |
-          docker load < frontend-image.tar.gz
-          docker tag jsrankit/cdm-ui:${{ needs.setup.outputs.timestamp_tag }} jsrankit/cdm-ui:latest
-          docker push jsrankit/cdm-ui:${{ needs.setup.outputs.timestamp_tag }}
-          docker push jsrankit/cdm-ui:latest
-
-  # Job 7: Push Backend to Registry
-  push-backend:
-    runs-on: ubuntu-latest
-    needs: [setup, build-backend, test-backend]
-    if: needs.setup.outputs.should_push == 'true' && (always() && needs.build-backend.result == 'success')
-    steps:
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      
-      - name: Download Backend artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-image
-      
-      - name: Load and push Backend image
-        run: |
-          docker load < backend-image.tar.gz
-          docker tag jsrankit/cdm-server:${{ needs.setup.outputs.timestamp_tag }} jsrankit/cdm-server:latest
-          docker push jsrankit/cdm-server:${{ needs.setup.outputs.timestamp_tag }}
-          docker push jsrankit/cdm-server:latest
-
-  # Job 8: Cleanup old Docker Hub images
+  # Job 5: Cleanup old Docker Hub images
   cleanup-dockerhub:
     runs-on: ubuntu-latest
-    needs: [setup, push-frontend, push-backend]
+    needs: [setup, build-push-frontend, build-push-backend]
     if: needs.setup.outputs.should_push == 'true' && always()
     strategy:
       matrix:
