@@ -5,33 +5,47 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --background: 220 20% 98%;
+    --foreground: 240 15% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 240 15% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    --popover-foreground: 240 15% 15%;
 
-    --primary: 210 50% 60%;
+    --primary: 220 70% 55%;
     --primary-foreground: 0 0% 98%;
+    --primary-glow: 220 80% 70%;
 
-    --secondary: 217.2 20% 90%;
-    --secondary-foreground: 240 5.9% 10%;
+    --secondary: 280 60% 85%;
+    --secondary-foreground: 280 80% 20%;
 
-    --muted: 217.2 20% 95%;
-    --muted-foreground: 215 20.2% 50%;
+    --muted: 200 30% 92%;
+    --muted-foreground: 200 25% 45%;
 
-    --accent: 217.2 20% 95%;
-    --accent-foreground: 240 5.9% 10%;
+    --accent: 45 90% 75%;
+    --accent-foreground: 45 85% 15%;
 
-    --destructive: 0 62.8% 50.6%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 217.2 20% 85%;
-    --input: 217.2 20% 85%;
-    --ring: 224.3 70% 60%;
+    --border: 200 25% 80%;
+    --input: 200 25% 85%;
+    --ring: 220 70% 55%;
+
+    /* Beautiful gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(220 70% 55%), hsl(220 80% 70%));
+    --gradient-secondary: linear-gradient(135deg, hsl(280 60% 85%), hsl(300 70% 80%));
+    --gradient-accent: linear-gradient(135deg, hsl(45 90% 75%), hsl(60 85% 70%));
+    --gradient-bg: linear-gradient(180deg, hsl(220 20% 98%), hsl(200 30% 96%));
+    
+    /* Elegant shadows */
+    --shadow-colorful: 0 8px 32px hsl(220 70% 55% / 0.15);
+    --shadow-accent: 0 4px 20px hsl(45 90% 75% / 0.3);
+    
+    /* Smooth transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
@@ -71,7 +85,7 @@
   }
   
   body {
-    @apply bg-background text-foreground;
+    @apply bg-gradient-bg text-foreground;
   }
   
   html, body, #root {
