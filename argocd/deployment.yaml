@@ -4,6 +4,10 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: cdm-system
+  labels:
+    name: cdm-system
+    app.kubernetes.io/name: cdm
+    app.kubernetes.io/part-of: cdm-platform
 ---
 # CDM Server Deployment
 apiVersion: apps/v1
@@ -13,8 +17,18 @@ metadata:
   namespace: cdm-system
   labels:
     app: cdm-server
+    app.kubernetes.io/name: cdm-server
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: cdm-platform
+    app.kubernetes.io/version: latest
 spec:
   replicas: 2
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
   selector:
     matchLabels:
       app: cdm-server
@@ -22,12 +36,31 @@ spec:
     metadata:
       labels:
         app: cdm-server
+        app.kubernetes.io/name: cdm-server
+        app.kubernetes.io/component: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3001"
+        prometheus.io/path: "/metrics"
     spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
       containers:
       - name: cdm-server
         image: jsrankit/cdm-server:latest
+        imagePullPolicy: Always
         ports:
-        - containerPort: 3001
+        - name: http
+          containerPort: 3001
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3001"
         resources:
           requests:
             memory: "128Mi"
@@ -35,18 +68,63 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "500m"
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
         readinessProbe:
           httpGet:
             path: /health
-            port: 3001
+            port: http
+            scheme: HTTP
           initialDelaySeconds: 10
-          periodSeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
         livenessProbe:
           httpGet:
             path: /health
-            port: 3001
+            port: http
+            scheme: HTTP
           initialDelaySeconds: 30
-          periodSeconds: 10
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 12
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: var-log
+          mountPath: /var/log
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: var-log
+        emptyDir: {}
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+      - key: "node.kubernetes.io/unreachable"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300
+      - key: "node.kubernetes.io/not-ready"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300
 ---
 # CDM UI Deployment
 apiVersion: apps/v1
@@ -56,8 +134,18 @@ metadata:
   namespace: cdm-system
   labels:
     app: cdm-ui
+    app.kubernetes.io/name: cdm-ui
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: cdm-platform
+    app.kubernetes.io/version: latest
 spec:
   replicas: 2
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
   selector:
     matchLabels:
       app: cdm-ui
@@ -65,12 +153,33 @@ spec:
     metadata:
       labels:
         app: cdm-ui
+        app.kubernetes.io/name: cdm-ui
+        app.kubernetes.io/component: frontend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
     spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
       containers:
       - name: cdm-ui
         image: jsrankit/cdm-ui:latest
+        imagePullPolicy: Always
         ports:
-        - containerPort: 8080
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "8080"
+        - name: REACT_APP_API_URL
+          value: "https://cdm-server.endusercompute.in"
         resources:
           requests:
             memory: "64Mi"
@@ -78,18 +187,67 @@ spec:
           limits:
             memory: "256Mi"
             cpu: "200m"
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
         readinessProbe:
           httpGet:
             path: /
-            port: 8080
+            port: http
+            scheme: HTTP
           initialDelaySeconds: 5
-          periodSeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
         livenessProbe:
           httpGet:
             path: /
-            port: 8080
+            port: http
+            scheme: HTTP
           initialDelaySeconds: 15
-          periodSeconds: 10
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 12
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: var-log
+          mountPath: /var/log
+        - name: nginx-cache
+          mountPath: /var/cache/nginx
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: var-log
+        emptyDir: {}
+      - name: nginx-cache
+        emptyDir: {}
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+      - key: "node.kubernetes.io/unreachable"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300
+      - key: "node.kubernetes.io/not-ready"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300
 ---
 # CDM Server Service
 apiVersion: v1
@@ -97,13 +255,20 @@ kind: Service
 metadata:
   name: cdm-server-service
   namespace: cdm-system
+  labels:
+    app: cdm-server
+    app.kubernetes.io/name: cdm-server
+    app.kubernetes.io/component: backend
 spec:
+  type: ClusterIP
+  sessionAffinity: None
   selector:
     app: cdm-server
   ports:
-  - port: 3001
-    targetPort: 3001
-  type: ClusterIP
+  - name: http
+    port: 3001
+    targetPort: http
+    protocol: TCP
 ---
 # CDM UI Service
 apiVersion: v1
@@ -111,13 +276,157 @@ kind: Service
 metadata:
   name: cdm-ui-service
   namespace: cdm-system
+  labels:
+    app: cdm-ui
+    app.kubernetes.io/name: cdm-ui
+    app.kubernetes.io/component: frontend
 spec:
+  type: ClusterIP
+  sessionAffinity: None
   selector:
     app: cdm-ui
   ports:
-  - port: 8080
-    targetPort: 8080
-  type: ClusterIP
+  - name: http
+    port: 8080
+    targetPort: http
+    protocol: TCP
+---
+# Pod Disruption Budget for Backend
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: cdm-server-pdb
+  namespace: cdm-system
+  labels:
+    app: cdm-server
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: cdm-server
+---
+# Pod Disruption Budget for Frontend
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: cdm-ui-pdb
+  namespace: cdm-system
+  labels:
+    app: cdm-ui
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: cdm-ui
+---
+# Horizontal Pod Autoscaler for Backend
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: cdm-server-hpa
+  namespace: cdm-system
+  labels:
+    app: cdm-server
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: cdm-server
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+---
+# Horizontal Pod Autoscaler for Frontend
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: cdm-ui-hpa
+  namespace: cdm-system
+  labels:
+    app: cdm-ui
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: cdm-ui
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+---
+# Network Policy for CDM System
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cdm-network-policy
+  namespace: cdm-system
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: nginx-ingress
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/component: frontend
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/component: backend
+  egress:
+  - {}
 ---
 # Ingress for both services
 apiVersion: networking.k8s.io/v1
@@ -125,10 +434,20 @@ kind: Ingress
 metadata:
   name: cdm-ingress
   namespace: cdm-system
+  labels:
+    app.kubernetes.io/name: cdm-ingress
+    app.kubernetes.io/part-of: cdm-platform
   annotations:
     kubernetes.io/ingress.class: "nginx"
     nginx.ingress.kubernetes.io/ssl-passthrough: "true"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
   tls:
   - hosts:
@@ -145,7 +464,7 @@ spec:
           service:
             name: cdm-ui-service
             port:
-              number: 8080
+              name: http
   - host: cdm-server.endusercompute.in
     http:
       paths:
@@ -155,4 +474,4 @@ spec:
           service:
             name: cdm-server-service
             port:
-              number: 3001
+              name: http
