@@ -2,8 +2,18 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 
 const VersionDisplay: React.FC = () => {
-  // Get version from environment variables injected at build time
-  const version = import.meta.env.VITE_VERSION || 'dev';
+  // Generate version in MMDDYYYY.HHMM format
+  const generateVersion = () => {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const year = now.getFullYear();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${month}${day}${year}.${hours}${minutes}`;
+  };
+
+  const version = import.meta.env.VITE_VERSION || generateVersion();
   
   return (
     <div className="fixed bottom-4 right-4 z-50">
