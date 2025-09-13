@@ -31,7 +31,7 @@ jobs:
       
       - name: Generate timestamp tag
         id: timestamp
-        run: echo "tag=$(date +'%m%d%Y%H%M')" >> $GITHUB_OUTPUT
+        run: echo "tag=$(date +'%d%m%Y.%H%M')" >> $GITHUB_OUTPUT
 
   # Job 2: Build and Push Frontend (Multi-Architecture)
   build-push-frontend:
@@ -58,6 +58,9 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Display build version
+        run: echo "🏗️ Building Frontend version ${{ needs.setup.outputs.timestamp_tag }}"
       
       - name: Build and push Frontend (multi-arch)
         uses: docker/build-push-action@v5
@@ -98,6 +101,9 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+      
+      - name: Display build version
+        run: echo "🏗️ Building Backend version ${{ needs.setup.outputs.timestamp_tag }}"
       
       - name: Build and push Backend (multi-arch)
         uses: docker/build-push-action@v5
