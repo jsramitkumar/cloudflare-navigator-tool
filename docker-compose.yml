@@ -1,9 +1,7 @@
-version: '3.8'
-
 services:
   backend:
     image: jsrankit/cdm-server:latest
-    name: cloudflare-navigator-tool-API
+    container_name: cloudflare-navigator-tool-API
     pull_policy: always
     ports:
       - "3001:3001"
@@ -20,15 +18,14 @@ services:
     volumes:
       - /home/pi/Downloads/fullchain1.pem:/app/ssl/fullchain1.pem:ro
       - /home/pi/Downloads/privkey1.pem:/app/ssl/privkey1.pem:ro
-
     restart: unless-stopped
     networks:
       - app-network
 
   frontend:
     image: jsrankit/cdm-ui:latest
+    container_name: cloudflare-navigator-tool-UI
     pull_policy: always
-    name: cloudflare-navigator-tool-UI
     ports:
       - "8080:8080"
       - "8443:8443"
