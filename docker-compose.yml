@@ -12,8 +12,8 @@ services:
       - HOST=0.0.0.0
       - API_URL=https://api.cloudflare.com/client/v4
       - SSL_ENABLED=true
-      - SSL_CERT_PATH=/home/pi/Downloads/fullchain1.pem
-      - SSL_KEY_PATH=/home/pi/Downloads/privkey1.pem
+      - SSL_CERT_PATH=/app/ssl/fullchain1.pem
+      - SSL_KEY_PATH=/app/ssl/privkey1.pem
       - SSL_PORT=3443
     volumes:
       - ./ssl:/app/ssl:ro
@@ -22,19 +22,19 @@ services:
       - app-network
 
   frontend:
-    image: jsrankit/cdm-frontend:latest
+    image: jsrankit/cdm-ui:latest
     ports:
       - "8080:8080"
       - "8443:8443"
     environment:
       - PORT=8080
       - SSL_ENABLED=true
-      - SSL_CERT_PATH=/home/pi/Downloads/fullchain1.pem
-      - SSL_KEY_PATH=/home/pi/Downloads/privkey1.pem
+      - SSL_CERT_PATH=/app/ssl/fullchain1.pem
+      - SSL_KEY_PATH=/app/ssl/privkey1.pem
       - SSL_PORT=8443
     volumes:
       - ./ssl:/app/ssl:ro
-      - ./version.json:/app/dist/version.json:ro
+
     depends_on:
       - backend
     restart: unless-stopped
