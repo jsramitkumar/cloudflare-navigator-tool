@@ -1,13 +1,22 @@
-name: Build & Push Multi-Arch FE + BE
+name: Build & Push Multi-Arch + Update K8s Manifests
+
 on:
   push:
     branches: ['main', 'develop']
   pull_request:
     branches: ['main']
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deployment even without changes'
+        required: false
+        type: boolean
+        default: false
 
 env:
   REGISTRY: docker.io
-  KEEP_IMAGES: 3  # Keep only the latest 3 images
+  KEEP_IMAGES: 3
+  K8S_MANIFEST_PATH: k8s/deployment.yaml
 
 jobs:
   # Job 1: Setup and validation
@@ -16,27 +25,47 @@ jobs:
     outputs:
       should_push: ${{ steps.check.outputs.should_push }}
       timestamp_tag: ${{ steps.timestamp.outputs.tag }}
+      git_hash: ${{ steps.git.outputs.hash }}
+      version_tag: ${{ steps.version.outputs.tag }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       
       - name: Check if should push
         id: check
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" && "${{ github.event_name }}" == "push" ]]; then
+          if [[ "${{ github.ref }}" == "refs/heads/main" && ("${{ github.event_name }}" == "push" || "${{ github.event.inputs.force_deploy }}" == "true") ]]; then
             echo "should_push=true" >> $GITHUB_OUTPUT
+            echo "✅ Will push images and update manifests"
           else
             echo "should_push=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ Will only build images (no push or manifest update)"
           fi
       
       - name: Generate timestamp tag
         id: timestamp
         run: echo "tag=$(date +'%d%m%Y.%H%M')" >> $GITHUB_OUTPUT
+      
+      - name: Get git hash
+        id: git
+        run: echo "hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      
+      - name: Generate version tag
+        id: version
+        run: |
+          VERSION_TAG="v1.0-${{ steps.timestamp.outputs.tag }}-${{ steps.git.outputs.hash }}"
+          echo "tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
+          echo "📦 Version tag: ${VERSION_TAG}"
 
   # Job 2: Build and Push Frontend (Multi-Architecture)
   build-push-frontend:
     runs-on: ubuntu-latest
     needs: setup
+    outputs:
+      image_tag: ${{ needs.setup.outputs.version_tag }}
+      image_digest: ${{ steps.build.outputs.digest }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -59,27 +88,35 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       
-      - name: Display build version
-        run: echo "🏗️ Building Frontend version ${{ needs.setup.outputs.timestamp_tag }}"
+      - name: Display build information
+        run: |
+          echo "🏗️ Building Frontend"
+          echo "📦 Version: ${{ needs.setup.outputs.version_tag }}"
+          echo "🔄 Push: ${{ needs.setup.outputs.should_push }}"
       
       - name: Build and push Frontend (multi-arch)
+        id: build
         uses: docker/build-push-action@v5
         with:
           context: ./FE
           platforms: linux/amd64,linux/arm64
           tags: |
-            jsrankit/cdm-ui:${{ needs.setup.outputs.timestamp_tag }}
+            jsrankit/cdm-ui:${{ needs.setup.outputs.version_tag }}
             jsrankit/cdm-ui:latest
           push: ${{ needs.setup.outputs.should_push == 'true' }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
           provenance: false
           sbom: false
+          outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=CDM Frontend Multi-Arch Image
 
   # Job 3: Build and Push Backend (Multi-Architecture)
   build-push-backend:
     runs-on: ubuntu-latest
     needs: setup
+    outputs:
+      image_tag: ${{ needs.setup.outputs.version_tag }}
+      image_digest: ${{ steps.build.outputs.digest }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -102,28 +139,171 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       
-      - name: Display build version
-        run: echo "🏗️ Building Backend version ${{ needs.setup.outputs.timestamp_tag }}"
+      - name: Display build information
+        run: |
+          echo "🏗️ Building Backend"
+          echo "📦 Version: ${{ needs.setup.outputs.version_tag }}"
+          echo "🔄 Push: ${{ needs.setup.outputs.should_push }}"
       
       - name: Build and push Backend (multi-arch)
+        id: build
         uses: docker/build-push-action@v5
         with:
           context: ./BE
           platforms: linux/amd64,linux/arm64
           tags: |
-            jsrankit/cdm-server:${{ needs.setup.outputs.timestamp_tag }}
+            jsrankit/cdm-server:${{ needs.setup.outputs.version_tag }}
             jsrankit/cdm-server:latest
           push: ${{ needs.setup.outputs.should_push == 'true' }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
           provenance: false
           sbom: false
+          outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=CDM Backend Multi-Arch Image
 
-  # Job 4: Test Multi-Arch Images (Optional)
+  # Job 4: Update Kubernetes Manifests
+  update-k8s-manifests:
+    runs-on: ubuntu-latest
+    needs: [setup, build-push-frontend, build-push-backend]
+    if: needs.setup.outputs.should_push == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Update Kubernetes manifests
+        id: update-manifests
+        run: |
+          set -e
+          
+          NEW_TAG="${{ needs.setup.outputs.version_tag }}"
+          MANIFEST_FILE="${{ env.K8S_MANIFEST_PATH }}"
+          
+          echo "📝 Updating Kubernetes manifests with tag: ${NEW_TAG}"
+          
+          # Check if manifest file exists
+          if [[ ! -f "${MANIFEST_FILE}" ]]; then
+            echo "❌ Manifest file not found: ${MANIFEST_FILE}"
+            exit 1
+          fi
+          
+          # Create backup
+          cp "${MANIFEST_FILE}" "${MANIFEST_FILE}.backup"
+          
+          # Update cdm-server image tag
+          echo "🔄 Updating cdm-server image tag..."
+          sed -i "s|jsrankit/cdm-server:.*|jsrankit/cdm-server:${NEW_TAG}|g" "${MANIFEST_FILE}"
+          
+          # Update cdm-ui image tag
+          echo "🔄 Updating cdm-ui image tag..."
+          sed -i "s|jsrankit/cdm-ui:.*|jsrankit/cdm-ui:${NEW_TAG}|g" "${MANIFEST_FILE}"
+          
+          # Verify changes were made
+          if grep -q "jsrankit/cdm-server:${NEW_TAG}" "${MANIFEST_FILE}" && grep -q "jsrankit/cdm-ui:${NEW_TAG}" "${MANIFEST_FILE}"; then
+            echo "✅ Successfully updated image tags in manifest"
+            
+            # Show the changes
+            echo "📋 Updated image references:"
+            grep -n "jsrankit/cdm-" "${MANIFEST_FILE}" | head -10
+            
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Failed to update image tags"
+            exit 1
+          fi
+      
+      - name: Validate YAML syntax
+        run: |
+          echo "🔍 Validating YAML syntax..."
+          python3 -c "
+          import yaml
+          import sys
+          
+          try:
+              with open('${{ env.K8S_MANIFEST_PATH }}', 'r') as file:
+                  docs = list(yaml.safe_load_all(file))
+              print(f'✅ YAML validation passed - {len(docs)} documents found')
+          except yaml.YAMLError as e:
+              print(f'❌ YAML validation failed: {e}')
+              sys.exit(1)
+          except Exception as e:
+              print(f'❌ Unexpected error: {e}')
+              sys.exit(1)
+          "
+      
+      - name: Commit and push changes
+        if: steps.update-manifests.outputs.has_changes == 'true'
+        run: |
+          set -e
+          
+          NEW_TAG="${{ needs.setup.outputs.version_tag }}"
+          
+          # Check if there are changes to commit
+          if git diff --quiet; then
+            echo "⚠️ No changes detected in git"
+            exit 0
+          fi
+          
+          echo "📝 Committing manifest changes..."
+          
+          # Add the manifest file
+          git add "${{ env.K8S_MANIFEST_PATH }}"
+          
+          # Create commit message
+          COMMIT_MSG="🚀 Update image tags to ${NEW_TAG}
+          
+          [skip ci] Automated image tag update
+          - cdm-server: ${NEW_TAG}
+          - cdm-ui: ${NEW_TAG}
+          
+          Triggered by: ${{ github.event_name }}
+          Commit: ${{ needs.setup.outputs.git_hash }}
+          Workflow: ${{ github.run_id }}"
+          
+          # Commit changes
+          git commit -m "${COMMIT_MSG}"
+          
+          # Push changes
+          echo "⬆️ Pushing changes to repository..."
+          git push origin HEAD
+          
+          echo "✅ Successfully committed and pushed manifest updates"
+      
+      - name: Create deployment summary
+        run: |
+          NEW_TAG="${{ needs.setup.outputs.version_tag }}"
+          
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## 🚀 Deployment Summary
+          
+          ### 📦 New Image Tags
+          - **Frontend (cdm-ui)**: \`jsrankit/cdm-ui:${NEW_TAG}\`
+          - **Backend (cdm-server)**: \`jsrankit/cdm-server:${NEW_TAG}\`
+          
+          ### 📝 Updated Files
+          - \`${{ env.K8S_MANIFEST_PATH }}\`
+          
+          ### 🔄 ArgoCD Sync
+          ArgoCD will automatically detect the changes and deploy the new images based on your sync policy.
+          
+          ### 🎯 Next Steps
+          1. Monitor ArgoCD application: \`cdm-application\`
+          2. Verify deployment in namespace: \`cdm-system\`
+          3. Check application health endpoints
+          EOF
+
+  # Job 5: Test Multi-Arch Images (Optional)
   test-images:
     runs-on: ubuntu-latest
     needs: [setup, build-push-frontend, build-push-backend]
-    if: needs.setup.outputs.should_push == 'true' && always()
+    if: needs.setup.outputs.should_push == 'true'
     strategy:
       matrix:
         platform: [linux/amd64, linux/arm64]
@@ -138,22 +318,24 @@ jobs:
       
       - name: Test image on ${{ matrix.platform }}
         run: |
-          echo "Testing ${{ matrix.image.name }}:${{ needs.setup.outputs.timestamp_tag }} on ${{ matrix.platform }}"
-          # Pull and inspect the multi-arch image
-          docker pull --platform=${{ matrix.platform }} ${{ matrix.image.name }}:${{ needs.setup.outputs.timestamp_tag }}
-          docker inspect ${{ matrix.image.name }}:${{ needs.setup.outputs.timestamp_tag }}
+          NEW_TAG="${{ needs.setup.outputs.version_tag }}"
+          IMAGE_NAME="${{ matrix.image.name }}:${NEW_TAG}"
           
-          # Quick container start test (modify as needed for your apps)
-          # docker run --rm --platform=${{ matrix.platform }} -d --name test-container -p ${{ matrix.image.port }}:${{ matrix.image.port }} ${{ matrix.image.name }}:${{ needs.setup.outputs.timestamp_tag }}
-          # sleep 10
-          # docker stop test-container || true
+          echo "🧪 Testing ${IMAGE_NAME} on ${{ matrix.platform }}"
+          
+          # Pull and inspect the multi-arch image
+          docker pull --platform=${{ matrix.platform }} "${IMAGE_NAME}"
+          docker inspect "${IMAGE_NAME}"
+          
+          # Get image info
+          docker image ls "${IMAGE_NAME}"
           
           echo "✅ Image test completed for ${{ matrix.platform }}"
 
-  # Job 5: Cleanup old Docker Hub images
+  # Job 6: Cleanup old Docker Hub images
   cleanup-dockerhub:
     runs-on: ubuntu-latest
-    needs: [setup, build-push-frontend, build-push-backend]
+    needs: [setup, build-push-frontend, build-push-backend, update-k8s-manifests]
     if: needs.setup.outputs.should_push == 'true' && always()
     strategy:
       matrix:
@@ -168,7 +350,7 @@ jobs:
             const username = '${{ secrets.DOCKER_USERNAME }}';
             const token = '${{ secrets.DOCKER_PASSWORD }}';
             
-            console.log(`Cleaning up ${repository}, keeping ${keepCount} latest images`);
+            console.log(`🧹 Cleaning up ${repository}, keeping ${keepCount} latest images`);
             
             try {
               // Get Docker Hub token
@@ -207,19 +389,19 @@ jobs:
               console.log(`Found ${allTags.length} total tags`);
               
               // Filter out 'latest' tag and sort by last_updated (newest first)
-              const timestampTags = allTags
-                .filter(tag => tag.name !== 'latest' && /^\d{12}$/.test(tag.name))
+              const versionTags = allTags
+                .filter(tag => tag.name !== 'latest' && tag.name.startsWith('v1.0-'))
                 .sort((a, b) => new Date(b.last_updated) - new Date(a.last_updated));
               
-              console.log(`Found ${timestampTags.length} timestamp tags`);
+              console.log(`Found ${versionTags.length} version tags`);
               
               // Keep only the latest N images, delete the rest
-              const tagsToDelete = timestampTags.slice(keepCount);
+              const tagsToDelete = versionTags.slice(keepCount);
               
               console.log(`Will delete ${tagsToDelete.length} old tags`);
               
               for (const tag of tagsToDelete) {
-                console.log(`Deleting tag: ${tag.name} (${tag.last_updated})`);
+                console.log(`🗑️ Deleting tag: ${tag.name} (${tag.last_updated})`);
                 
                 const deleteResponse = await fetch(`https://hub.docker.com/v2/repositories/${repository}/tags/${tag.name}/`, {
                   method: 'DELETE',
@@ -238,9 +420,36 @@ jobs:
                 await new Promise(resolve => setTimeout(resolve, 1000));
               }
               
-              console.log(`Cleanup completed for ${repository}`);
+              console.log(`🎉 Cleanup completed for ${repository}`);
               
             } catch (error) {
-              console.error(`Error cleaning up ${repository}:`, error);
+              console.error(`❌ Error cleaning up ${repository}:`, error);
               // Don't fail the workflow for cleanup errors
             }
+
+  # Job 7: Notification and Summary
+  notify-deployment:
+    runs-on: ubuntu-latest
+    needs: [setup, build-push-frontend, build-push-backend, update-k8s-manifests]
+    if: always() && needs.setup.outputs.should_push == 'true'
+    steps:
+      - name: Deployment notification
+        run: |
+          NEW_TAG="${{ needs.setup.outputs.version_tag }}"
+          
+          if [[ "${{ needs.update-k8s-manifests.result }}" == "success" ]]; then
+            echo "🎉 Deployment completed successfully!"
+            echo "📦 New version: ${NEW_TAG}"
+            echo "🔄 ArgoCD will automatically sync the changes"
+            
+            # You can add Slack/Discord/Email notifications here
+            # Example:
+            # curl -X POST -H 'Content-type: application/json' \
+            #   --data '{"text":"🚀 CDM Platform deployed successfully with version '${NEW_TAG}'"}' \
+            #   ${{ secrets.SLACK_WEBHOOK_URL }}
+            
+          else
+            echo "❌ Deployment failed!"
+            echo "📋 Check the workflow logs for details"
+            exit 1
+          fi
