@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   backend:
-    build: ./BE
+    image: jsrankit/cdm-server:latest
     ports:
       - "3001:3001"
       - "3443:3443"
@@ -11,9 +11,9 @@ services:
       - PORT=3001
       - HOST=0.0.0.0
       - API_URL=https://api.cloudflare.com/client/v4
-      - SSL_ENABLED=false
-      - SSL_CERT_PATH=/app/ssl/cert.pem
-      - SSL_KEY_PATH=/app/ssl/key.pem
+      - SSL_ENABLED=true
+      - SSL_CERT_PATH=/home/pi/Downloads/fullchain1.pem
+      - SSL_KEY_PATH=/home/pi/Downloads/privkey1.pem
       - SSL_PORT=3443
     volumes:
       - ./ssl:/app/ssl:ro
@@ -22,15 +22,15 @@ services:
       - app-network
 
   frontend:
-    build: ./FE
+    image: jsrankit/cdm-frontend:latest
     ports:
       - "8080:8080"
       - "8443:8443"
     environment:
       - PORT=8080
-      - SSL_ENABLED=false
-      - SSL_CERT_PATH=/app/ssl/cert.pem
-      - SSL_KEY_PATH=/app/ssl/key.pem
+      - SSL_ENABLED=true
+      - SSL_CERT_PATH=/home/pi/Downloads/fullchain1.pem
+      - SSL_KEY_PATH=/home/pi/Downloads/privkey1.pem
       - SSL_PORT=8443
     volumes:
       - ./ssl:/app/ssl:ro
