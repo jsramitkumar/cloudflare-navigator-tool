@@ -55,7 +55,7 @@ jobs:
       - name: Generate version tag
         id: version
         run: |
-          VERSION_TAG="v1.0-${{ steps.timestamp.outputs.tag }}-${{ steps.git.outputs.hash }}"
+          VERSION_TAG="${{ steps.timestamp.outputs.tag }}"
           echo "tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
           echo "📦 Version tag: ${VERSION_TAG}"
 

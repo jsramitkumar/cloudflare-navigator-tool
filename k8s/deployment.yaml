@@ -9,7 +9,7 @@ metadata:
   labels:
     app: cdm-server
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: cdm-server
@@ -112,7 +112,7 @@ metadata:
   labels:
     app: cdm-ui
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: cdm-ui
