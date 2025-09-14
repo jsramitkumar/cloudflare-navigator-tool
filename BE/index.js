@@ -1,9 +1,10 @@
-const express = require('express');
-const https = require('https');
-const http = require('http');
-const fs = require('fs');
-const cors = require('cors');
-const axios = require('axios');
+import express from 'express';
+import https from 'https';
+import http from 'http';
+import fs from 'fs';
+import cors from 'cors';
+import axios from 'axios';
+
 const app = express();
 const now = new Date();
 
@@ -326,4 +327,4 @@ if (SSL_ENABLED) {
   console.log('SSL disabled. Running HTTP only.');
 }
 
-module.exports = app;
+export default app;
