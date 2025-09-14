@@ -3,6 +3,8 @@ version: '3.8'
 services:
   backend:
     image: jsrankit/cdm-server:latest
+    name: cloudflare-navigator-tool-API
+    pull_policy: always
     ports:
       - "3001:3001"
       - "3443:3443"
@@ -16,13 +18,17 @@ services:
       - SSL_KEY_PATH=/app/ssl/privkey1.pem
       - SSL_PORT=3443
     volumes:
-      - ./ssl:/app/ssl:ro
+      - /home/pi/Downloads/fullchain1.pem:/app/ssl/fullchain1.pem:ro
+      - /home/pi/Downloads/privkey1.pem:/app/ssl/privkey1.pem:ro
+
     restart: unless-stopped
     networks:
       - app-network
 
   frontend:
     image: jsrankit/cdm-ui:latest
+    pull_policy: always
+    name: cloudflare-navigator-tool-UI
     ports:
       - "8080:8080"
       - "8443:8443"
@@ -33,8 +39,8 @@ services:
       - SSL_KEY_PATH=/app/ssl/privkey1.pem
       - SSL_PORT=8443
     volumes:
-      - ./ssl:/app/ssl:ro
-
+      - /home/pi/Downloads/fullchain1.pem:/app/ssl/fullchain1.pem:ro
+      - /home/pi/Downloads/privkey1.pem:/app/ssl/privkey1.pem:ro
     depends_on:
       - backend
     restart: unless-stopped
@@ -44,7 +50,3 @@ services:
 networks:
   app-network:
     driver: bridge
-
-volumes:
-  ssl-certs:
-    driver: local
