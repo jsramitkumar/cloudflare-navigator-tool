@@ -26,40 +26,43 @@ export default defineConfig(({ mode }) => {
     };
     fs.writeFileSync(versionPath, JSON.stringify(versionData, null, 2));
   } catch (error) {
-    console.warn('Could not update version.json:', error.message);
+    console.warn('Could not update version.json:', (error as Error).message);
   }
 
+  // SSL configuration helper
+  const getHttpsConfig = () => {
+    if (process.env.SSL_ENABLED === 'true' && 
+        fs.existsSync('./ssl/cert.pem') && 
+        fs.existsSync('./ssl/key.pem')) {
+      return {
+        cert: fs.readFileSync('./ssl/cert.pem'),
+        key: fs.readFileSync('./ssl/key.pem')
+      };
+    }
+    return undefined;
+  };
+
   return {
-  plugins: [
-    react(),
-    mode === 'development' && componentTagger(),
-  ].filter(Boolean),
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+    plugins: [
+      react(),
+      mode === 'development' && componentTagger(),
+    ].filter(Boolean),
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
     },
-  },
-  server: {
-    port: 8080,
-    host: "0.0.0.0",
-    cors: true,
-    https: process.env.SSL_ENABLED === 'true' && 
-           fs.existsSync('./ssl/cert.pem') && 
-           fs.existsSync('./ssl/key.pem') ? {
-      cert: fs.readFileSync('./ssl/cert.pem'),
-      key: fs.readFileSync('./ssl/key.pem')
-    } : false
-  },
-  preview: {
-    port: 8080,
-    host: "0.0.0.0",
-    cors: true,
-    https: process.env.SSL_ENABLED === 'true' && 
-           fs.existsSync('./ssl/cert.pem') && 
-           fs.existsSync('./ssl/key.pem') ? {
-      cert: fs.readFileSync('./ssl/cert.pem'),
-      key: fs.readFileSync('./ssl/key.pem')
-    } : false
-  }
+    server: {
+      port: 8080,
+      host: "0.0.0.0",
+      cors: true,
+      https: getHttpsConfig()
+    },
+    preview: {
+      port: 8080,
+      host: "0.0.0.0",
+      cors: true,
+      https: getHttpsConfig()
+    }
   };
 });
