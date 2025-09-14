@@ -1,11 +1,20 @@
-import express from 'express';
-import cors from 'cors';
-import axios from 'axios';
+const express = require('express');
+const https = require('https');
+const http = require('http');
+const fs = require('fs');
+const cors = require('cors');
+const axios = require('axios');
 const app = express();
 const now = new Date();
+
+// Environment variables  
 const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 const API_URL = process.env.API_URL || 'https://api.cloudflare.com/client/v4';
+const SSL_ENABLED = process.env.SSL_ENABLED === 'true';
+const SSL_CERT_PATH = process.env.SSL_CERT_PATH || '/app/ssl/cert.pem';
+const SSL_KEY_PATH = process.env.SSL_KEY_PATH || '/app/ssl/key.pem';
+const SSL_PORT = process.env.SSL_PORT || 3443;
 
 // Log all environment variables for debugging
 console.log('========= SERVER ENVIRONMENT VARIABLES =========');
@@ -13,6 +22,7 @@ console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('PORT:', PORT);
 console.log('HOST:', HOST);
 console.log('API_URL:', API_URL);
+console.log('SSL_ENABLED:', SSL_ENABLED);
 console.log('===============================================');
 
 // Enable CORS for all origins
@@ -285,10 +295,35 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server listening on all interfaces
-app.listen(PORT, HOST, () => {
-  console.log(`Backend server running on ${HOST}:${PORT}`);
+// Start HTTP server
+const httpServer = http.createServer(app);
+httpServer.listen(PORT, HOST, () => {
+  console.log(`HTTP Server running on http://${HOST}:${PORT}`);
   console.log(`API URL: ${API_URL}`);
 });
 
-export default app;
+// Start HTTPS server if SSL is enabled and certificates exist
+if (SSL_ENABLED) {
+  try {
+    if (fs.existsSync(SSL_CERT_PATH) && fs.existsSync(SSL_KEY_PATH)) {
+      const sslOptions = {
+        cert: fs.readFileSync(SSL_CERT_PATH),
+        key: fs.readFileSync(SSL_KEY_PATH)
+      };
+      
+      const httpsServer = https.createServer(sslOptions, app);
+      httpsServer.listen(SSL_PORT, HOST, () => {
+        console.log(`HTTPS Server running on https://${HOST}:${SSL_PORT}`);
+      });
+    } else {
+      console.log('SSL enabled but certificates not found. Running HTTP only.');
+    }
+  } catch (error) {
+    console.error('SSL setup failed:', error.message);
+    console.log('Running HTTP only.');
+  }
+} else {
+  console.log('SSL disabled. Running HTTP only.');
+}
+
+module.exports = app;
