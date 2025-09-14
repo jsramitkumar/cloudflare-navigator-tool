@@ -13,8 +13,8 @@ const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 const API_URL = process.env.API_URL || 'https://api.cloudflare.com/client/v4';
 const SSL_ENABLED = process.env.SSL_ENABLED === 'true';
-const SSL_CERT_PATH = process.env.SSL_CERT_PATH || '/app/ssl/cert.pem';
-const SSL_KEY_PATH = process.env.SSL_KEY_PATH || '/app/ssl/key.pem';
+const SSL_CERT_PATH = process.env.SSL_CERT_PATH || '/app/ssl/fullchain.pem';
+const SSL_KEY_PATH = process.env.SSL_KEY_PATH || '/app/ssl/privkey.pem';
 const SSL_PORT = process.env.SSL_PORT || 3443;
 
 // Log all environment variables for debugging
