@@ -61,4 +61,5 @@ export default defineConfig(({ mode }) => {
       key: fs.readFileSync('./ssl/key.pem')
     } : false
   }
+  };
 });
