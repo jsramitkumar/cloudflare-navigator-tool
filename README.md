@@ -15,6 +15,19 @@
 
 </div>
 
+
+<div align="center">
+
+### ☕ Buy Me a Coffee
+
+If this project helped you, consider supporting its development!
+
+[![Buy Me A Coffee](https://img.shields.io/badge/☕-Buy_Me_A_Coffee-orange?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/jsramitkumar)
+
+**Your support helps maintain and improve this project! 🙏**
+
+</div>
+
 ---
 
 ## ✨ Features
@@ -40,18 +53,6 @@
 - **Performance Optimized** - Built with Vite for lightning-fast development and builds
 
 ---
-
-<div align="center">
-
-### ☕ Buy Me a Coffee
-
-If this project helped you, consider supporting its development!
-
-[![Buy Me A Coffee](https://img.shields.io/badge/☕-Buy_Me_A_Coffee-orange?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/jsramitkumar)
-
-**Your support helps maintain and improve this project! 🙏**
-
-</div>
 
 ## 🏗️ Architecture
 
