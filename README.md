@@ -350,9 +350,7 @@ Having issues or questions? I'm here to help!
 
 If this project helped you, consider supporting its development!
 
-[![Buy Me A Coffee](https://img.shields.io/badge/☕-Buy_Me_A_Coffee-orange?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/jsrankit)
-[![PayPal](https://img.shields.io/badge/💰-PayPal-blue?style=for-the-badge&logo=paypal)](https://paypal.me/jsrankit)
-[![GitHub Sponsor](https://img.shields.io/badge/❤️-Sponsor-pink?style=for-the-badge&logo=github-sponsors)](https://github.com/sponsors/jsramitkumar)
+[![Buy Me A Coffee](https://img.shields.io/badge/☕-Buy_Me_A_Coffee-orange?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/jsramitkumar)
 
 **Your support helps maintain and improve this project! 🙏**
 
