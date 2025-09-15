@@ -41,6 +41,18 @@
 
 ---
 
+<div align="center">
+
+### ☕ Buy Me a Coffee
+
+If this project helped you, consider supporting its development!
+
+[![Buy Me A Coffee](https://img.shields.io/badge/☕-Buy_Me_A_Coffee-orange?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/jsramitkumar)
+
+**Your support helps maintain and improve this project! 🙏**
+
+</div>
+
 ## 🏗️ Architecture
 
 <div align="center">
@@ -360,7 +372,7 @@ If this project helped you, consider supporting its development!
 
 <div align="center">
 
-**Made with ❤️ by [JS Rankit](https://github.com/jsramitkumar)**
+**Made with ❤️ by [Amit Kumar](https://github.com/jsramitkumar)**
 
 ⭐ **Star this repo if you found it helpful!** ⭐
 
