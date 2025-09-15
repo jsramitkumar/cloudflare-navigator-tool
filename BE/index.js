@@ -4,9 +4,60 @@ import http from 'http';
 import fs from 'fs';
 import cors from 'cors';
 import axios from 'axios';
+import path from 'path';
 
 const app = express();
 const now = new Date();
+
+// Store for active users and IP logging
+const activeUsers = new Map(); // sessionId -> { lastSeen: timestamp, ip: string }
+const LOG_DIR = '/app/logs';
+const IP_LOG_FILE = path.join(LOG_DIR, 'publicip.txt');
+
+// Ensure logs directory exists
+if (!fs.existsSync(LOG_DIR)) {
+  fs.mkdirSync(LOG_DIR, { recursive: true });
+}
+
+// Function to get client IP address
+const getClientIP = (req) => {
+  return req.headers['x-forwarded-for'] || 
+         req.headers['x-real-ip'] || 
+         req.connection?.remoteAddress || 
+         req.socket?.remoteAddress || 
+         req.ip || 
+         'unknown';
+};
+
+// Function to log IP address with timestamp
+const logIPAddress = (ip) => {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = now.getFullYear();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  
+  const timestamp = `${day}.${month}.${year} - ${hours}:${minutes}:${seconds}`;
+  const logEntry = `${timestamp} - Public IP: ${ip}\n`;
+  
+  try {
+    fs.appendFileSync(IP_LOG_FILE, logEntry);
+  } catch (error) {
+    console.error('Failed to log IP address:', error);
+  }
+};
+
+// Cleanup inactive users (older than 60 seconds)
+const cleanupInactiveUsers = () => {
+  const cutoff = Date.now() - 60000; // 60 seconds
+  for (const [sessionId, userData] of activeUsers.entries()) {
+    if (userData.lastSeen < cutoff) {
+      activeUsers.delete(sessionId);
+    }
+  }
+};
 
 // Environment variables  
 const PORT = process.env.PORT || 3001;
@@ -36,6 +87,9 @@ app.use(express.json());
 
 // Request logging middleware
 app.use((req, res, next) => {
+  // Log IP for all requests
+  const clientIP = getClientIP(req);
+  logIPAddress(clientIP);
   next();
 });
 
@@ -127,6 +181,72 @@ const callCloudflareApi = async (req, endpoint, method, data = null) => {
     };
   }
 };
+
+// User presence endpoints
+app.post('/api/users/presence', (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    const clientIP = getClientIP(req);
+    
+    if (!sessionId) {
+      return res.status(400).json({ success: false, message: 'Session ID required' });
+    }
+    
+    // Update user presence
+    activeUsers.set(sessionId, {
+      lastSeen: Date.now(),
+      ip: clientIP
+    });
+    
+    // Cleanup inactive users
+    cleanupInactiveUsers();
+    
+    res.json({
+      success: true,
+      activeUsers: activeUsers.size,
+      sessionId
+    });
+  } catch (error) {
+    console.error('Presence update error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+app.get('/api/users/count', (req, res) => {
+  try {
+    // Cleanup inactive users before counting
+    cleanupInactiveUsers();
+    
+    res.json({
+      success: true,
+      activeUsers: activeUsers.size
+    });
+  } catch (error) {
+    console.error('User count error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+app.delete('/api/users/presence', (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    
+    if (sessionId && activeUsers.has(sessionId)) {
+      activeUsers.delete(sessionId);
+    }
+    
+    res.json({
+      success: true,
+      activeUsers: activeUsers.size
+    });
+  } catch (error) {
+    console.error('Presence removal error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+// Cleanup inactive users every 30 seconds
+setInterval(cleanupInactiveUsers, 30000);
 
 // API Routes
 // Test connection endpoint
