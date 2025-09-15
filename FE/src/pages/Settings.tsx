@@ -35,8 +35,8 @@ import {
   CloudflareCredentials
 } from '@/services/cloudflareApi';
 import { 
-  getCurrentApiUrl, 
-  saveApiUrl, 
+  getCurrentHostname, 
+  saveHostname, 
   testBackendConnection 
 } from '@/services/apiConfig';
 import AccountSelector from '@/components/AccountSelector';
@@ -49,12 +49,12 @@ const formSchema = z.object({
   zoneId: z.string().min(1, 'Zone ID is required'),
 });
 
-const apiUrlFormSchema = z.object({
-  apiUrl: z.string().url('Must be a valid URL'),
+const hostnameFormSchema = z.object({
+  hostname: z.string().min(1, 'Hostname is required').regex(/^[a-zA-Z0-9.-]+$/, 'Must be a valid hostname'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
-type ApiUrlFormValues = z.infer<typeof apiUrlFormSchema>;
+type HostnameFormValues = z.infer<typeof hostnameFormSchema>;
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
@@ -76,10 +76,10 @@ const Settings: React.FC = () => {
     },
   });
   
-  const apiUrlForm = useForm<ApiUrlFormValues>({
-    resolver: zodResolver(apiUrlFormSchema),
+  const hostnameForm = useForm<HostnameFormValues>({
+    resolver: zodResolver(hostnameFormSchema),
     defaultValues: {
-      apiUrl: getCurrentApiUrl(),
+      hostname: getCurrentHostname(),
     },
   });
   
@@ -256,31 +256,31 @@ const Settings: React.FC = () => {
     });
   };
 
-  const onApiUrlSubmit = async (data: ApiUrlFormValues) => {
+  const onHostnameSubmit = async (data: HostnameFormValues) => {
     setIsTestingBackend(true);
     try {
       // Test connection to backend
-      const isConnected = await testBackendConnection(data.apiUrl);
+      const isConnected = await testBackendConnection(data.hostname);
       
       if (isConnected) {
-        // Save API URL to localStorage
-        saveApiUrl(data.apiUrl);
+        // Save hostname to localStorage
+        saveHostname(data.hostname);
         
         toast({
-          title: "Backend URL updated",
-          description: "Connection to backend successful. URL has been saved.",
+          title: "Backend hostname updated",
+          description: "Connection to backend successful. Hostname has been saved.",
         });
       } else {
         toast({
           title: "Connection failed",
-          description: "Failed to connect to backend. Please check the URL.",
+          description: "Failed to connect to backend. Please check the hostname.",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Connection failed",
-        description: "Failed to connect to backend. Please check the URL.",
+        description: "Failed to connect to backend. Please check the hostname.",
         variant: "destructive",
       });
     } finally {
@@ -296,22 +296,22 @@ const Settings: React.FC = () => {
         <CardHeader>
           <CardTitle>Backend API Configuration</CardTitle>
           <CardDescription>
-            Configure the URL for the backend API server.
+            Configure the hostname for the backend API server. Defaults to cdm-api-server.endusercompute.in
           </CardDescription>
         </CardHeader>
-        <Form {...apiUrlForm}>
-          <form onSubmit={apiUrlForm.handleSubmit(onApiUrlSubmit)}>
+        <Form {...hostnameForm}>
+          <form onSubmit={hostnameForm.handleSubmit(onHostnameSubmit)}>
             <CardContent>
               <FormField
-                control={apiUrlForm.control}
-                name="apiUrl"
+                control={hostnameForm.control}
+                name="hostname"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Backend API URL</FormLabel>
+                    <FormLabel>Backend Hostname</FormLabel>
                     <FormControl>
                       <Input 
                         type="text" 
-                        placeholder="http://localhost:3001/api" 
+                        placeholder="cdm-api-server.endusercompute.in" 
                         {...field} 
                       />
                     </FormControl>

@@ -1,19 +1,17 @@
 
 // Base URL for API requests
 export const getApiBaseUrl = () => {
-  // Check if we have a custom API URL set in localStorage
-  const customApiUrl = localStorage.getItem('backendApiUrl');
-  if (customApiUrl) {
-    return customApiUrl;
-  }
-
+  // Check if we have a custom hostname set in localStorage
+  const customHostname = localStorage.getItem('backendHostname');
+  
   // During development with Vite, use the proxy
   if (process.env.NODE_ENV === 'development') {
     return '/api';
   }
 
-  // In production, use the hardcoded path
-  return '/api';
+  // Use custom hostname or default to production hostname
+  const hostname = customHostname || 'cdm-api-server.endusercompute.in';
+  return `https://${hostname}/api`;
 };
 
 // Default headers for API requests
@@ -27,20 +25,28 @@ export const getDefaultHeaders = (credentials: any) => {
   };
 };
 
-// Save the API URL to localStorage
-export const saveApiUrl = (url: string) => {
-  localStorage.setItem('backendApiUrl', url);
+// Save the hostname to localStorage
+export const saveHostname = (hostname: string) => {
+  localStorage.setItem('backendHostname', hostname);
 };
 
-// Get the current API URL from localStorage
-export const getCurrentApiUrl = (): string => {
-  return localStorage.getItem('backendApiUrl') || '/api';
+// Get the current hostname from localStorage
+export const getCurrentHostname = (): string => {
+  return localStorage.getItem('backendHostname') || 'cdm-api-server.endusercompute.in';
 };
 
 // Test the connection to the backend
-export const testBackendConnection = async (url: string): Promise<boolean> => {
+export const testBackendConnection = async (hostname: string): Promise<boolean> => {
   try {
-    const response = await fetch(`${url}/cloudflare/test-connection`);
+    // For development, test against localhost proxy
+    let testUrl = `/api/cloudflare/test-connection`;
+    
+    // For production or when testing custom hostname, use full URL
+    if (process.env.NODE_ENV !== 'development' || hostname !== 'cdm-api-server.endusercompute.in') {
+      testUrl = `https://${hostname}/api/cloudflare/test-connection`;
+    }
+    
+    const response = await fetch(testUrl);
     if (!response.ok) {
       return false;
     }
