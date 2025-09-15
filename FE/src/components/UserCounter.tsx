@@ -73,7 +73,7 @@ const UserCounter: React.FC = () => {
   }, []);
 
   return (
-    <div className="fixed top-4 right-4 z-50">
+    <div className="fixed top-4 left-72 z-50">
       <Badge 
         variant={isOnline ? "default" : "secondary"} 
         className="flex items-center gap-2 px-3 py-1 bg-background/80 backdrop-blur-sm border"
