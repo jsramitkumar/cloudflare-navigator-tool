@@ -213,7 +213,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: cdm-server.endusercompute.in
+    - host: cdm-api-server.endusercompute.in
       http:
         paths:
           - path: /
@@ -241,7 +241,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: cdm-ui.endusercompute.in
+    - host: dnsportal.endusercompute.in
       http:
         paths:
           - path: /
