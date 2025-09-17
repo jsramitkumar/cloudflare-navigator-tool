@@ -14,9 +14,21 @@ const activeUsers = new Map(); // sessionId -> { lastSeen: timestamp, ip: string
 const LOG_DIR = '/app/logs';
 const IP_LOG_FILE = path.join(LOG_DIR, 'publicip.txt');
 
-// Ensure logs directory exists
-if (!fs.existsSync(LOG_DIR)) {
-  fs.mkdirSync(LOG_DIR, { recursive: true });
+// Ensure logs directory exists with proper error handling
+try {
+  if (!fs.existsSync(LOG_DIR)) {
+    fs.mkdirSync(LOG_DIR, { recursive: true });
+    console.log(`Created logs directory: ${LOG_DIR}`);
+  }
+  
+  // Test write permission
+  const testFile = path.join(LOG_DIR, 'test.txt');
+  fs.writeFileSync(testFile, 'test');
+  fs.unlinkSync(testFile);
+  console.log(`Logs directory is writable: ${LOG_DIR}`);
+} catch (error) {
+  console.error('Failed to create or access logs directory:', error);
+  console.error('IP logging may not work properly');
 }
 
 // Function to get client IP address
@@ -43,9 +55,26 @@ const logIPAddress = (ip) => {
   const logEntry = `${timestamp} - Public IP: ${ip}\n`;
   
   try {
+    // Ensure directory exists before each write
+    if (!fs.existsSync(LOG_DIR)) {
+      fs.mkdirSync(LOG_DIR, { recursive: true });
+    }
+    
     fs.appendFileSync(IP_LOG_FILE, logEntry);
+    console.log(`IP logged: ${ip} at ${timestamp}`);
   } catch (error) {
     console.error('Failed to log IP address:', error);
+    console.error('Log directory:', LOG_DIR);
+    console.error('Log file path:', IP_LOG_FILE);
+    
+    // Try alternative log location
+    try {
+      const altLogFile = path.join(process.cwd(), 'publicip.txt');
+      fs.appendFileSync(altLogFile, logEntry);
+      console.log(`IP logged to alternative location: ${altLogFile}`);
+    } catch (altError) {
+      console.error('Failed to log to alternative location:', altError);
+    }
   }
 };
 

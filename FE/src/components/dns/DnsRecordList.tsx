@@ -101,18 +101,37 @@ const DnsRecordList: React.FC<DnsRecordListProps> = ({
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction onClick={async () => {
-                          const result = await DnsCleanupService.safeDeleteDnsRecord(record.id);
-                          if (result.success) {
-                            if (result.warnings.length > 0) {
-                              result.warnings.forEach(warning => {
-                                toast({
-                                  title: "Warning",
-                                  description: warning,
-                                  variant: "destructive",
+                          try {
+                            const result = await DnsCleanupService.safeDeleteDnsRecord(record.id);
+                            if (result.success) {
+                              if (result.warnings.length > 0) {
+                                result.warnings.forEach(warning => {
+                                  toast({
+                                    title: "Warning",
+                                    description: warning,
+                                    variant: "destructive",
+                                  });
                                 });
+                              }
+                              onDelete(record.id);
+                              toast({
+                                title: "DNS Record Deleted",
+                                description: `${record.type} record "${record.name}" has been deleted successfully.`,
+                              });
+                            } else {
+                              toast({
+                                title: "Failed to delete record",
+                                description: "There was an error deleting the DNS record.",
+                                variant: "destructive",
                               });
                             }
-                            onDelete(record.id);
+                          } catch (error) {
+                            console.error('Delete error:', error);
+                            toast({
+                              title: "Failed to delete record",
+                              description: "There was an error deleting the DNS record.",
+                              variant: "destructive",
+                            });
                           }
                         }}>
                           Delete
