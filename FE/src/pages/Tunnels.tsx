@@ -144,7 +144,8 @@ const Tunnels: React.FC = () => {
   const onDelete = async (id: string) => {
     try {
       await tunnelsApi.deleteTunnel(id);
-      setTunnels(tunnels.filter(tunnel => tunnel.id !== id));
+      // Update state immediately after successful deletion
+      setTunnels(currentTunnels => currentTunnels.filter(tunnel => tunnel.id !== id));
       toast({
         title: "Tunnel deleted",
         description: "The Cloudflare tunnel has been deleted.",
@@ -156,6 +157,8 @@ const Tunnels: React.FC = () => {
         description: "There was an error deleting your Cloudflare tunnel.",
         variant: "destructive",
       });
+      // Refresh the tunnels list in case of error to ensure UI is in sync
+      fetchTunnels();
     }
   };
   

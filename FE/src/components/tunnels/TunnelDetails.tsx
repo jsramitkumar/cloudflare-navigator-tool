@@ -319,6 +319,8 @@ const TunnelDetails: React.FC<TunnelDetailsProps> = ({ tunnelId, onBack }) => {
       
       // Update the tunnel configuration using the correct cfd_tunnel endpoint
       await tunnelsApi.updateTunnelConfig(tunnelId, updatedConfig);
+      
+      // Update state immediately after successful API call
       setConfig(updatedConfig);
       
       // Also delete the corresponding DNS record if it exists
@@ -355,6 +357,14 @@ const TunnelDetails: React.FC<TunnelDetailsProps> = ({ tunnelId, onBack }) => {
         description: "There was an error deleting the public hostname.",
         variant: "destructive",
       });
+      
+      // Refresh the configuration in case of error to ensure UI is in sync
+      try {
+        const refreshedConfig = await tunnelsApi.getTunnelConfig(tunnelId);
+        setConfig(refreshedConfig);
+      } catch (refreshError) {
+        console.error('Failed to refresh config after delete error:', refreshError);
+      }
     }
   };
   
