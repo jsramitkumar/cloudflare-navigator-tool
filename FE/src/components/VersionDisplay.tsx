@@ -28,7 +28,7 @@ const VersionDisplay: React.FC = () => {
   
   return (
     <div className="fixed bottom-4 right-4 z-50">
-      <Badge variant="secondary" className="text-xs font-mono">
+      <Badge variant="secondary" className="text-xs font-mono bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20">
         v{displayVersion}
       </Badge>
     </div>
