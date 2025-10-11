@@ -9,7 +9,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit2, EyeOff, Eye, Trash2, Network } from 'lucide-react';
+import { Edit2, EyeOff, Eye, Trash2, Network, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +40,8 @@ const DnsRecordList: React.FC<DnsRecordListProps> = ({
   onEdit,
   onDelete
 }) => {
+  const navigate = useNavigate();
+  
   // Helper function to check if a DNS record is managed by a tunnel
   const isTunnelManaged = (record: DnsRecord): boolean => {
     return record.type === 'CNAME' && record.content.endsWith('.cfargotunnel.com');
@@ -82,16 +85,7 @@ const DnsRecordList: React.FC<DnsRecordListProps> = ({
                       <Network className="h-4 w-4 text-primary inline-block" />
                     )}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {record.name}
-                      {tunnelManaged && (
-                        <Badge variant="secondary" className="text-xs">
-                          Tunnel Managed
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
+                  <TableCell>{record.name}</TableCell>
                   <TableCell className="font-mono text-sm">{record.content}</TableCell>
                   <TableCell>{record.ttl === 1 ? 'Auto' : record.ttl}</TableCell>
                   <TableCell>
@@ -102,9 +96,15 @@ const DnsRecordList: React.FC<DnsRecordListProps> = ({
                   </TableCell>
                   <TableCell className="text-right">
                     {tunnelManaged ? (
-                      <span className="text-xs text-muted-foreground italic">
-                        Manage from Tunnels section
-                      </span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => navigate('/tunnels')}
+                        className="gap-2"
+                      >
+                        Go to Tunnels
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
                     ) : (
                       <>
                         <Button 
