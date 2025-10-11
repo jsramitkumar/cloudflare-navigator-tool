@@ -4,7 +4,8 @@
   "description": "<div align=\"center\">",
   "main": "index.js",
   "scripts": {
-  "build:dev": "vite build --mode development"
+    "build:dev": "cd FE && npm run build",
+    "build": "cd FE && npm run build"
 }
 ,
   "keywords": [],
