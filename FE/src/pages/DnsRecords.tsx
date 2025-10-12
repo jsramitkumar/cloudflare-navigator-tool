@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { dnsRecordsApi, DnsRecord, getCredentials, getActiveAccountId } from '@/services/cloudflareApi';
 import AddDnsRecordDialog from '@/components/dns/AddDnsRecordDialog';
 import EditDnsRecordDialog from '@/components/dns/EditDnsRecordDialog';
@@ -155,22 +155,9 @@ const DnsRecords: React.FC = () => {
     }
   };
   
-  const onDelete = async (id: string) => {
-    try {
-      await dnsRecordsApi.deleteRecord(id);
-      setRecords(records.filter(record => record.id !== id));
-      toast({
-        title: "Record deleted",
-        description: "The DNS record has been deleted.",
-      });
-    } catch (error) {
-      console.error('Failed to delete DNS record:', error);
-      toast({
-        title: "Failed to delete record",
-        description: "There was an error deleting your DNS record.",
-        variant: "destructive",
-      });
-    }
+  const onDelete = (id: string) => {
+    // Update state immediately - the actual deletion is handled by DnsRecordList
+    setRecords(currentRecords => currentRecords.filter(record => record.id !== id));
   };
   
   // Filter and search records

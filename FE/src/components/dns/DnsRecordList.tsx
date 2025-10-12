@@ -125,6 +125,16 @@ const DnsRecordList: React.FC<DnsRecordListProps> = ({
                                 try {
                                   const result = await DnsCleanupService.safeDeleteDnsRecord(record.id);
                                   if (result.success) {
+                                    // Update parent state
+                                    onDelete(record.id);
+                                    
+                                    // Show success message
+                                    toast({
+                                      title: "DNS Record Deleted",
+                                      description: `${record.type} record "${record.name}" has been deleted successfully.`,
+                                    });
+                                    
+                                    // Show warnings if any
                                     if (result.warnings.length > 0) {
                                       result.warnings.forEach(warning => {
                                         toast({
@@ -134,11 +144,6 @@ const DnsRecordList: React.FC<DnsRecordListProps> = ({
                                         });
                                       });
                                     }
-                                    onDelete(record.id);
-                                    toast({
-                                      title: "DNS Record Deleted",
-                                      description: `${record.type} record "${record.name}" has been deleted successfully.`,
-                                    });
                                   } else {
                                     toast({
                                       title: "Failed to delete record",
@@ -150,7 +155,7 @@ const DnsRecordList: React.FC<DnsRecordListProps> = ({
                                   console.error('Delete error:', error);
                                   toast({
                                     title: "Failed to delete record",
-                                    description: "There was an error deleting the DNS record.",
+                                    description: error instanceof Error ? error.message : "There was an error deleting the DNS record.",
                                     variant: "destructive",
                                   });
                                 }
