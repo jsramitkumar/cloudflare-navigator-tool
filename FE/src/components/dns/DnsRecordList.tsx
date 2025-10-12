@@ -24,9 +24,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { DnsRecord } from '@/services/cloudflareApi';
 import { DnsCleanupService } from '@/services/dnsCleanupService';
-import { toast } from '@/components/ui/use-toast';
-import { Badge } from '@/components/ui/badge';
-
+import { toast } from '@/hooks/use-toast';
 interface DnsRecordListProps {
   records: DnsRecord[];
   isLoading: boolean;
