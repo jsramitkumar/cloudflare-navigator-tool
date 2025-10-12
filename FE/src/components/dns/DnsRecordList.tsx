@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit2, EyeOff, Eye, Trash2, Network, ExternalLink } from 'lucide-react';
+import { Edit2, EyeOff, Eye, Trash2, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertDialog,
@@ -52,7 +52,6 @@ const DnsRecordList: React.FC<DnsRecordListProps> = ({
         <TableHeader>
           <TableRow>
             <TableHead className="w-[100px]">Type</TableHead>
-            <TableHead className="w-[60px]"></TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Content</TableHead>
             <TableHead className="w-[100px]">TTL</TableHead>
@@ -63,13 +62,13 @@ const DnsRecordList: React.FC<DnsRecordListProps> = ({
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center py-10">
+              <TableCell colSpan={6} className="text-center py-10">
                 Loading records...
               </TableCell>
             </TableRow>
           ) : records.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center py-10">
+              <TableCell colSpan={6} className="text-center py-10">
                 No records found
               </TableCell>
             </TableRow>
@@ -80,11 +79,6 @@ const DnsRecordList: React.FC<DnsRecordListProps> = ({
               return (
                 <TableRow key={record.id}>
                   <TableCell className="font-medium">{record.type}</TableCell>
-                  <TableCell className="text-center">
-                    {tunnelManaged && (
-                      <Network className="h-4 w-4 text-primary inline-block" />
-                    )}
-                  </TableCell>
                   <TableCell>{record.name}</TableCell>
                   <TableCell className="font-mono text-sm">{record.content}</TableCell>
                   <TableCell>{record.ttl === 1 ? 'Auto' : record.ttl}</TableCell>
