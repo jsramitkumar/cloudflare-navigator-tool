@@ -154,7 +154,7 @@ const TunnelDetails: React.FC<TunnelDetailsProps> = ({ tunnelId, onBack }) => {
         // Create a CNAME record pointing to the tunnel
         await dnsRecordsApi.createRecord({
           type: 'CNAME',
-          name: data.hostname.split('.')[0], // Extract subdomain part
+          name: data.hostname, // Use full hostname for DNS record name
           content: `${tunnel.id}.cfargotunnel.com`, // Standard Cloudflare Argo tunnel format
           ttl: 1, // Auto TTL (Cloudflare managed)
           proxied: true // Enable Cloudflare proxy
@@ -239,15 +239,14 @@ const TunnelDetails: React.FC<TunnelDetailsProps> = ({ tunnelId, onBack }) => {
         try {
           // First try to find if there's an existing CNAME record for the old hostname
           const records = await dnsRecordsApi.listRecords();
-          const oldHostnamePrefix = editIngress.hostname.split('.')[0];
           const existingRecord = records.find(
-            record => record.type === 'CNAME' && record.name === oldHostnamePrefix
+            record => record.type === 'CNAME' && (record.name === editIngress.hostname || record.name === editIngress.hostname.split('.')[0])
           );
           
           if (existingRecord) {
             // Update the existing record
             await dnsRecordsApi.updateRecord(existingRecord.id, {
-              name: data.hostname.split('.')[0], // Extract subdomain part
+              name: data.hostname, // Use full hostname for DNS record name
               content: `${tunnel.id}.cfargotunnel.com`, // Standard Cloudflare Argo tunnel format
               ttl: 1,
               proxied: true
@@ -326,9 +325,8 @@ const TunnelDetails: React.FC<TunnelDetailsProps> = ({ tunnelId, onBack }) => {
       // Also delete the corresponding DNS record if it exists
       try {
         const records = await dnsRecordsApi.listRecords();
-        const hostnamePrefix = ingress.hostname.split('.')[0];
         const existingRecord = records.find(
-          record => record.type === 'CNAME' && record.name === hostnamePrefix
+          record => record.type === 'CNAME' && (record.name === ingress.hostname || record.name === ingress.hostname.split('.')[0])
         );
         
         if (existingRecord) {

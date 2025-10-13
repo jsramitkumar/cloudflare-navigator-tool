@@ -98,19 +98,22 @@ const TunnelIngressForm: React.FC<TunnelIngressFormProps> = ({
 
   const handleSubmit = (values: TunnelIngressFormValues) => {
 
-    // Transform the form values back to the required format
-    const formattedValues = {
-      domain: values.domain,
+    // Build full hostname from subdomain + domain
+    const hostname = values.subdomain && values.subdomain.trim().length > 0
+      ? `${values.subdomain.trim()}.${values.domain}`
+      : values.domain;
+
+    // Transform to shape expected by TunnelDetails handlers
+    const finalValues = {
+      hostname,
       service: values.service,
       noTLSVerify: values.noTLSVerify,
       path: values.path || undefined,
-      subdomain: values.subdomain || undefined,
       originServerName: values.originServerName || undefined,
     };
 
-    onSubmit(formattedValues);
+    onSubmit(finalValues as any);
   };
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
