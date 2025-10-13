@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: cdm-server
-          image: jsrankit/cdm-server:12102025.1653
+          image: jsrankit/cdm-server:13102025.1119
           imagePullPolicy: Always
           env:
             - name: NODE_ENV
@@ -123,7 +123,7 @@ spec:
     spec:
       containers:
         - name: cdm-ui
-          image: jsrankit/cdm-ui:12102025.1653
+          image: jsrankit/cdm-ui:13102025.1119
           imagePullPolicy: Always
           env:
             - name: PORT
