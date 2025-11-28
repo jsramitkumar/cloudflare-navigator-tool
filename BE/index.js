@@ -20,7 +20,7 @@ try {
     fs.mkdirSync(LOG_DIR, { recursive: true });
     console.log(`Created logs directory: ${LOG_DIR}`);
   }
-  
+
   // Test write permission
   const testFile = path.join(LOG_DIR, 'test.txt');
   fs.writeFileSync(testFile, 'test');
@@ -33,12 +33,13 @@ try {
 
 // Function to get client IP address
 const getClientIP = (req) => {
-  return req.headers['x-forwarded-for'] || 
-         req.headers['x-real-ip'] || 
-         req.connection?.remoteAddress || 
-         req.socket?.remoteAddress || 
-         req.ip || 
-         'unknown';
+  return req.headers['cf-connecting-ip'] ||
+    req.headers['x-forwarded-for'] ||
+    req.headers['x-real-ip'] ||
+    req.connection?.remoteAddress ||
+    req.socket?.remoteAddress ||
+    req.ip ||
+    'unknown';
 };
 
 // Function to log IP address with timestamp
@@ -50,23 +51,23 @@ const logIPAddress = (ip) => {
   const hours = String(now.getHours()).padStart(2, '0');
   const minutes = String(now.getMinutes()).padStart(2, '0');
   const seconds = String(now.getSeconds()).padStart(2, '0');
-  
+
   const timestamp = `${day}.${month}.${year} - ${hours}:${minutes}:${seconds}`;
   const logEntry = `${timestamp} - Public IP: ${ip}\n`;
-  
+
   try {
     // Ensure directory exists before each write
     if (!fs.existsSync(LOG_DIR)) {
       fs.mkdirSync(LOG_DIR, { recursive: true });
     }
-    
+
     fs.appendFileSync(IP_LOG_FILE, logEntry);
     console.log(`IP logged: ${ip} at ${timestamp}`);
   } catch (error) {
     console.error('Failed to log IP address:', error);
     console.error('Log directory:', LOG_DIR);
     console.error('Log file path:', IP_LOG_FILE);
-    
+
     // Try alternative log location
     try {
       const altLogFile = path.join(process.cwd(), 'publicip.txt');
@@ -135,7 +136,7 @@ const extractCredentials = (req) => {
 // Make request to Cloudflare API
 const callCloudflareApi = async (req, endpoint, method, data = null) => {
   const { apiKey, email, accountId, zoneId } = extractCredentials(req);
-  
+
   // Check if credentials are provided
   if (!apiKey || !zoneId) {
     throw {
@@ -146,13 +147,13 @@ const callCloudflareApi = async (req, endpoint, method, data = null) => {
       }
     };
   }
-  
+
   // Construct the base URL for different API resources
   let baseUrl = API_URL;
-  
+
   // Determine the full endpoint based on the resource type
   let fullEndpoint = '';
-  
+
   if (endpoint.startsWith('/dns')) {
     // DNS endpoints use zones
     const path = endpoint.replace('/dns', '');
@@ -174,10 +175,10 @@ const callCloudflareApi = async (req, endpoint, method, data = null) => {
   } else {
     fullEndpoint = endpoint;
   }
-  
-  const formattedUTC = `${now.getUTCFullYear()}-${(now.getUTCMonth()+1).toString().padStart(2, '0')}-${now.getUTCDate().toString().padStart(2, '0')} ` + `${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}:${now.getUTCSeconds().toString().padStart(2, '0')}`;
+
+  const formattedUTC = `${now.getUTCFullYear()}-${(now.getUTCMonth() + 1).toString().padStart(2, '0')}-${now.getUTCDate().toString().padStart(2, '0')} ` + `${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}:${now.getUTCSeconds().toString().padStart(2, '0')}`;
   console.log(`[${formattedUTC} UTC] Making ${method} request to: ${baseUrl}${fullEndpoint}`);
-  
+
   try {
     // Use Global API Key authentication
     const headers = {
@@ -185,14 +186,14 @@ const callCloudflareApi = async (req, endpoint, method, data = null) => {
       'X-Auth-Email': email,
       'Content-Type': 'application/json'
     };
-    
+
     const response = await axios({
       method,
       url: `${baseUrl}${fullEndpoint}`,
       headers,
       data: method !== 'GET' ? data : undefined
     });
-    
+
     return response.data;
   } catch (error) {
     console.error('Cloudflare API error:', error.response?.data || error.message);
@@ -202,7 +203,7 @@ const callCloudflareApi = async (req, endpoint, method, data = null) => {
       headers: { 'X-Auth-Key': '***REDACTED***', 'X-Auth-Email': email },
       data: method !== 'GET' ? JSON.stringify(data) : undefined
     });
-    
+
     throw {
       status: error.response?.status || 500,
       message: error.response?.data?.errors?.[0]?.message || 'An error occurred',
@@ -216,20 +217,20 @@ app.post('/api/users/presence', (req, res) => {
   try {
     const { sessionId } = req.body;
     const clientIP = getClientIP(req);
-    
+
     if (!sessionId) {
       return res.status(400).json({ success: false, message: 'Session ID required' });
     }
-    
+
     // Update user presence
     activeUsers.set(sessionId, {
       lastSeen: Date.now(),
       ip: clientIP
     });
-    
+
     // Cleanup inactive users
     cleanupInactiveUsers();
-    
+
     res.json({
       success: true,
       activeUsers: activeUsers.size,
@@ -245,7 +246,7 @@ app.get('/api/users/count', (req, res) => {
   try {
     // Cleanup inactive users before counting
     cleanupInactiveUsers();
-    
+
     res.json({
       success: true,
       activeUsers: activeUsers.size
@@ -256,14 +257,28 @@ app.get('/api/users/count', (req, res) => {
   }
 });
 
+// Get client IP endpoint
+app.get('/api/my-ip', (req, res) => {
+  try {
+    const clientIP = getClientIP(req);
+    res.json({
+      success: true,
+      ip: clientIP
+    });
+  } catch (error) {
+    console.error('Get IP error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
 app.delete('/api/users/presence', (req, res) => {
   try {
     const { sessionId } = req.body;
-    
+
     if (sessionId && activeUsers.has(sessionId)) {
       activeUsers.delete(sessionId);
     }
-    
+
     res.json({
       success: true,
       activeUsers: activeUsers.size
@@ -283,10 +298,10 @@ app.get('/api/cloudflare/test-connection', async (req, res) => {
   try {
     // Make a simple API call to verify credentials
     //const data = await callCloudflareApi(req, '/zones', 'GET');
-    const formattedUTC = `${now.getUTCFullYear()}-${(now.getUTCMonth()+1).toString().padStart(2, '0')}-${now.getUTCDate().toString().padStart(2, '0')} ` + `${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}:${now.getUTCSeconds().toString().padStart(2, '0')}`;
-    console.log(`[${formattedUTC} UTC]`,'Test connection successful');
-    res.json({ 
-      success: true, 
+    const formattedUTC = `${now.getUTCFullYear()}-${(now.getUTCMonth() + 1).toString().padStart(2, '0')}-${now.getUTCDate().toString().padStart(2, '0')} ` + `${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}:${now.getUTCSeconds().toString().padStart(2, '0')}`;
+    console.log(`[${formattedUTC} UTC]`, 'Test connection successful');
+    res.json({
+      success: true,
       message: 'Connection successful',
       serverInfo: {
         apiUrl: API_URL,
@@ -295,8 +310,8 @@ app.get('/api/cloudflare/test-connection', async (req, res) => {
     });
   } catch (error) {
     console.error('Test connection failed:', error.message);
-    res.status(error.status || 500).json({ 
-      success: false, 
+    res.status(error.status || 500).json({
+      success: false,
       message: `Connection failed: ${error.message}`,
       details: error.details,
       serverInfo: {
@@ -460,7 +475,7 @@ if (SSL_ENABLED) {
         cert: fs.readFileSync(SSL_CERT_PATH),
         key: fs.readFileSync(SSL_KEY_PATH)
       };
-      
+
       const httpsServer = https.createServer(sslOptions, app);
       httpsServer.listen(SSL_PORT, HOST, () => {
         console.log(`HTTPS Server running on https://${HOST}:${SSL_PORT}`);
