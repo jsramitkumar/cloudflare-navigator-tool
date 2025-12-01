@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { getApiBaseUrl } from '@/services/apiConfig';
 
 const VersionDisplay: React.FC = () => {
   const [versionInfo, setVersionInfo] = useState({ version: '1.0.0', buildTime: '' });
@@ -25,7 +26,8 @@ const VersionDisplay: React.FC = () => {
       });
 
     // Fetch user IP
-    fetch('/api/my-ip')
+    const baseUrl = getApiBaseUrl();
+    fetch(`${baseUrl}/my-ip`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {

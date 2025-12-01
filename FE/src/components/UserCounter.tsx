@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { getApiBaseUrl } from '@/services/apiConfig';
 
 const UserCounter: React.FC = () => {
   const [userCount, setUserCount] = useState<number>(0);
@@ -9,11 +10,12 @@ const UserCounter: React.FC = () => {
   useEffect(() => {
     // Generate a unique session ID for this user
     const sessionId = Date.now() + Math.random().toString(36).substr(2, 9);
+    const baseUrl = getApiBaseUrl();
 
     // Function to update user presence
     const updatePresence = async () => {
       try {
-        const response = await fetch('/api/users/presence', {
+        const response = await fetch(`${baseUrl}/users/presence`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -35,7 +37,7 @@ const UserCounter: React.FC = () => {
     // Function to get current user count
     const getUserCount = async () => {
       try {
-        const response = await fetch('/api/users/count');
+        const response = await fetch(`${baseUrl}/users/count`);
         if (response.ok) {
           const data = await response.json();
           setUserCount(data.activeUsers || 0);
@@ -62,7 +64,7 @@ const UserCounter: React.FC = () => {
       clearInterval(countInterval);
 
       // Send offline status
-      fetch('/api/users/presence', {
+      fetch(`${baseUrl}/users/presence`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

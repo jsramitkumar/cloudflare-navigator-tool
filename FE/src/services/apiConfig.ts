@@ -3,15 +3,19 @@
 export const getApiBaseUrl = () => {
   // Check if we have a custom hostname set in localStorage
   const customHostname = localStorage.getItem('backendHostname');
-  
-  // During development with Vite, use the proxy
+
+  // During development with Vite, point directly to backend
   if (process.env.NODE_ENV === 'development') {
-    return '/api';
+    return 'http://localhost:3001/api';
   }
 
   // Use custom hostname or default to production hostname
-  const hostname = customHostname || 'cdm-api-server.endusercompute.in';
-  return `https://${hostname}/api`;
+  const hostname = customHostname || 'localhost:3001';
+  // If hostname already includes protocol, don't add https://
+  if (hostname.startsWith('http')) {
+    return `${hostname}/api`;
+  }
+  return `http://${hostname}/api`;
 };
 
 // Default headers for API requests
@@ -40,12 +44,12 @@ export const testBackendConnection = async (hostname: string): Promise<boolean> 
   try {
     // For development, test against localhost proxy
     let testUrl = `/api/cloudflare/test-connection`;
-    
+
     // For production or when testing custom hostname, use full URL
     if (process.env.NODE_ENV !== 'development' || hostname !== 'cdm-api-server.endusercompute.in') {
       testUrl = `https://${hostname}/api/cloudflare/test-connection`;
     }
-    
+
     const response = await fetch(testUrl);
     if (!response.ok) {
       return false;
