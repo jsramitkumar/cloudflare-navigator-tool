@@ -2,7 +2,11 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 import { componentTagger } from "lovable-tagger";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -31,9 +35,9 @@ export default defineConfig(({ mode }) => {
 
   // SSL configuration helper
   const getHttpsConfig = () => {
-    if (process.env.SSL_ENABLED === 'true' && 
-        fs.existsSync('./ssl/cert.pem') && 
-        fs.existsSync('./ssl/key.pem')) {
+    if (process.env.SSL_ENABLED === 'true' &&
+      fs.existsSync('./ssl/cert.pem') &&
+      fs.existsSync('./ssl/key.pem')) {
       return {
         cert: fs.readFileSync('./ssl/cert.pem'),
         key: fs.readFileSync('./ssl/key.pem')
