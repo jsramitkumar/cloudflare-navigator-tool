@@ -1,23 +1,3 @@
-
-// Base URL for API requests
-export const getApiBaseUrl = () => {
-  // Check if we have a custom hostname set in localStorage
-  const customHostname = localStorage.getItem('backendHostname');
-
-  // During development with Vite, point directly to backend
-  if (process.env.NODE_ENV === 'development') {
-    return 'http://localhost:3001/api';
-  }
-
-  // Use custom hostname or default to production hostname
-  const hostname = customHostname || 'localhost:3001';
-  // If hostname already includes protocol, don't add https://
-  if (hostname.startsWith('http')) {
-    return `${hostname}/api`;
-  }
-  return `http://${hostname}/api`;
-};
-
 // Default headers for API requests
 export const getDefaultHeaders = (credentials: any) => {
   return {
