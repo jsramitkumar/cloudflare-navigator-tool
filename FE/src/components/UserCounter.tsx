@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -9,7 +9,7 @@ const UserCounter: React.FC = () => {
   useEffect(() => {
     // Generate a unique session ID for this user
     const sessionId = Date.now() + Math.random().toString(36).substr(2, 9);
-    
+
     // Function to update user presence
     const updatePresence = async () => {
       try {
@@ -20,7 +20,7 @@ const UserCounter: React.FC = () => {
           },
           body: JSON.stringify({ sessionId })
         });
-        
+
         if (response.ok) {
           const data = await response.json();
           setUserCount(data.activeUsers || 0);
@@ -60,7 +60,7 @@ const UserCounter: React.FC = () => {
     return () => {
       clearInterval(presenceInterval);
       clearInterval(countInterval);
-      
+
       // Send offline status
       fetch('/api/users/presence', {
         method: 'DELETE',
@@ -68,14 +68,14 @@ const UserCounter: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ sessionId })
-      }).catch(() => {});
+      }).catch(() => { });
     };
   }, []);
 
   return (
-    <div className="fixed top-4 left-72 z-50">
-      <Badge 
-        variant={isOnline ? "default" : "secondary"} 
+    <div className="fixed bottom-16 right-4 z-50">
+      <Badge
+        variant={isOnline ? "default" : "secondary"}
         className="flex items-center gap-2 px-3 py-1 bg-background/80 backdrop-blur-sm border"
       >
         <Users className="h-4 w-4" />

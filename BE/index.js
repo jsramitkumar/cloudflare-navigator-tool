@@ -33,7 +33,14 @@ try {
 
 // Function to get client IP address
 const getClientIP = (req) => {
-  return req.headers['cf-connecting-ip'];
+  return (
+    req.headers['cf-connecting-ip'] ||
+    req.headers['x-forwarded-for']?.split(',')[0].trim() ||
+    req.headers['x-real-ip'] ||
+    req.ip ||
+    req.connection.remoteAddress ||
+    'unknown'
+  );
 };
 
 // Function to log IP address with timestamp
