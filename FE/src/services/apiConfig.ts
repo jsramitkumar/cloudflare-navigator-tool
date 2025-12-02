@@ -1,3 +1,28 @@
+
+// Base URL for API requests
+export const getApiBaseUrl = () => {
+  // 1. Check for Vite environment variable (Highest priority)
+  const envApiUrl = import.meta.env.VITE_API_URL;
+  if (envApiUrl) {
+    return envApiUrl;
+  }
+
+  // 2. Check if we have a custom hostname set in localStorage
+  const customHostname = localStorage.getItem('backendHostname');
+
+  // 3. During development, default to localhost:3001 if no env var
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:3001/api';
+  }
+
+  // 4. Production fallback
+  const hostname = customHostname || 'localhost:3001';
+  if (hostname.startsWith('http')) {
+    return `${hostname}/api`;
+  }
+  return `http://${hostname}/api`;
+};
+
 // Default headers for API requests
 export const getDefaultHeaders = (credentials: any) => {
   return {
